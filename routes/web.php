@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Siswa\KegiatanController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
@@ -39,5 +40,17 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+Route::post('/admin/users', [UserController::class, 'store'])
+    ->middleware(['auth', 'role:admin']);
+
+Route::delete('/admin/users/{user}', [UserController::class, 'destroy'])
+    ->middleware(['auth', 'role:admin']);
+
+Route::get('/siswa/kegiatan', [KegiatanController::class, 'index'])
+    ->middleware(['auth', 'role:siswa']);
+
+Route::post('/siswa/kegiatan', [KegiatanController::class, 'store'])
+    ->middleware(['auth', 'role:siswa']);
 
 require __DIR__.'/auth.php';
