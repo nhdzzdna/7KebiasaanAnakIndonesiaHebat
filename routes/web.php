@@ -5,6 +5,18 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+Route::get('/admin/dashboard', function () {
+    return Inertia::render('Admin/Dashboard');
+})->middleware(['auth', 'role:admin']);
+
+Route::get('/guru/dashboard', function () {
+    return Inertia::render('Guru/Dashboard');
+})->middleware(['auth', 'role:guru']);
+
+Route::get('/siswa/dashboard', function () {
+    return Inertia::render('Siswa/Dashboard');
+})->middleware(['auth', 'role:siswa']);
+
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
