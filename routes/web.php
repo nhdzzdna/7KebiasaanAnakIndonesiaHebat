@@ -1,9 +1,13 @@
 <?php
 
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+Route::get('/admin/users', [UserController::class, 'index'])
+    ->middleware(['auth', 'role:admin']);
 
 Route::get('/admin/dashboard', function () {
     return Inertia::render('Admin/Dashboard');
