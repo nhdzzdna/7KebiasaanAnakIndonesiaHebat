@@ -14,6 +14,10 @@ Route::get('/admin/dashboard', function () {
     return Inertia::render('Admin/Dashboard');
 })->middleware(['auth', 'role:admin']);
 
+Route::get('/admin/profile', function () {
+    return Inertia::render('Admin/Profile/Index');
+});
+
 Route::get('/guru/dashboard', function () {
     return Inertia::render('Guru/Dashboard');
 })->middleware(['auth', 'role:guru']);
