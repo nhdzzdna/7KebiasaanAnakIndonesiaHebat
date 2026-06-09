@@ -19,6 +19,24 @@ use Illuminate\Support\Facades\Route;
 
 use Inertia\Inertia;
 
+Route::get('/admin/users', [UserController::class, 'index'])
+    ->middleware(['auth', 'role:admin']);
+
+Route::get('/admin/dashboard', function () {
+    return Inertia::render('Admin/Dashboard');
+})->middleware(['auth', 'role:admin']);
+
+Route::get('/admin/profile', function () {
+    return Inertia::render('Admin/Profile/Index');
+});
+
+Route::get('/guru/dashboard', function () {
+    return Inertia::render('Guru/Dashboard');
+})->middleware(['auth', 'role:guru']);
+
+Route::get('/siswa/dashboard', function () {
+    return Inertia::render('Siswa/Dashboard');
+})->middleware(['auth', 'role:siswa']);
 /*
 |--------------------------------------------------------------------------
 | PUBLIC

@@ -1,22 +1,23 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+const page = usePage();
 </script>
 
 <template>
-    <div class="flex min-h-screen bg-[#F4F7FE]">
+    <div class="flex min-h-screen bg-[#F8FAF9]">
 
         <!-- Sidebar -->
-        <aside class="w-72 bg-[#1E3A5F] text-white flex flex-col">
+        <aside class="w-56 bg-[#0F3D2E] text-white flex flex-col">
 
             <!-- Logo -->
             <div class="px-8 py-7 border-b border-white/10">
 
-                <h1 class="text-3xl font-bold tracking-wide">
-                    EduMonitor
+                <h1 class="text-2xl font-bold">
+                    Administrator
                 </h1>
 
-                <p class="text-sm text-blue-100 mt-1">
-                    Admin Dashboard
+                <p class="text-sm text-green-100 mt-1">
+                    Sistem Monitoring Sekolah
                 </p>
 
             </div>
@@ -24,27 +25,43 @@ import { Link } from '@inertiajs/vue3';
             <!-- Menu -->
             <nav class="flex-1 px-5 py-6 space-y-3">
 
-                <a
+                <Link
                     href="/admin/dashboard"
-                    class="flex items-center px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 transition"
+                    :class="[
+                        'flex items-center px-4 py-3 rounded-xl transition-all duration-200',
+                        page.url.startsWith('/admin/dashboard')
+                            ? 'bg-white text-[#0F3D2E] font-semibold shadow-sm'
+                            : 'text-white hover:bg-white/10'
+                    ]"
                 >
                     Dashboard
-                </a>
+                </Link>
 
-                <a
+                <Link
                     href="/admin/users"
-                    class="flex items-center px-4 py-3 rounded-xl hover:bg-white/10 transition"
+                    :class="[
+                        'flex items-center px-4 py-3 rounded-xl transition-all duration-200',
+                        page.url.startsWith('/admin/users')
+                            ? 'bg-white text-[#0F3D2E] font-semibold shadow-sm'
+                            : 'text-white hover:bg-white/10'
+                    ]"
                 >
-                    Kelola User
-                </a>
+                    Kelola Pengguna
+                </Link>
 
-                <a
-                    href="#"
-                    class="flex items-center px-4 py-3 rounded-xl hover:bg-white/10 transition"
+                <Link
+                    href="/admin/profile"
+                    :class="[
+                        'flex items-center px-4 py-3 rounded-xl transition-all duration-200',
+                        page.url.startsWith('/admin/profile')
+                            ? 'bg-white text-[#0F3D2E] font-semibold shadow-sm'
+                            : 'text-white hover:bg-white/10'
+                    ]"
                 >
-                    Monitoring
-                </a>
+                    Profil & Pengaturan
+                </Link>
 
+                
             </nav>
 
             <!-- Footer -->
@@ -54,7 +71,7 @@ import { Link } from '@inertiajs/vue3';
                     :href="route('logout')"
                     method="post"
                     as="button"
-                    class="w-full bg-[#2563EB] hover:bg-[#1D4ED8] transition py-3 rounded-xl font-medium"
+                    class="w-full bg-[#1B7F5A] hover:bg-[#166347] transition-all duration-200 py-3 rounded-xl font-medium"
                 >
                     Logout
                 </Link>
@@ -67,7 +84,7 @@ import { Link } from '@inertiajs/vue3';
         <div class="flex-1 flex flex-col">
 
             <!-- Navbar -->
-            <header class="h-20 bg-white border-b border-gray-200 px-8 flex items-center justify-between">
+            <header class="h-16 bg-white border-b border-gray-200 px-8 flex items-center justify-between">
 
                 <div>
                     <h2 class="text-2xl font-bold text-gray-800">
@@ -75,7 +92,7 @@ import { Link } from '@inertiajs/vue3';
                     </h2>
 
                     <p class="text-sm text-gray-500">
-                        Sistem Monitoring Siswa
+                        Pantau statistik dan aktivitas sistem sekolah
                     </p>
                 </div>
 
@@ -91,14 +108,16 @@ import { Link } from '@inertiajs/vue3';
                         </p>
                     </div>
 
-                    <div class="w-12 h-12 rounded-full bg-[#1E3A5F]"></div>
+                    <div class="w-11 h-11 rounded-full bg-[#0F3D2E] flex items-center justify-center text-white font-semibold">
+                        A
+                    </div>
 
                 </div>
 
             </header>
 
             <!-- Content -->
-            <main class="flex-1 p-8">
+            <main class="flex-1 px-8 py-6">
                 <slot />
             </main>
 
