@@ -38,19 +38,50 @@ class LoginRequest extends FormRequest
      *
      * @throws ValidationException
      */
+
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
-            RateLimiter::hit($this->throttleKey());
+        // CEK EMAIL TERDAFTAR
+        $user = \App\Models\User::where(
+            'email',
+            $this->email
+        )->first();
+
+        // AKUN NONAKTIF
+        if (
+            $user &&
+            $user->status_akun !== 'aktif'
+        ) {
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+
+                'email' =>
+                    'Akun Anda sedang nonaktif.'
             ]);
         }
 
-        RateLimiter::clear($this->throttleKey());
+        // LOGIN
+        if (! Auth::attempt([
+            'email' => $this->email,
+            'password' => $this->password,
+        ], $this->boolean('remember'))) {
+
+            RateLimiter::hit(
+                $this->throttleKey()
+            );
+
+            throw ValidationException::withMessages([
+
+                'email' =>
+                    trans('auth.failed'),
+            ]);
+        }
+
+        RateLimiter::clear(
+            $this->throttleKey()
+        );
     }
 
     /**
