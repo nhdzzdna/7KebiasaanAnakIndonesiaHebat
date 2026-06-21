@@ -22,13 +22,13 @@ class CheckAccountStatus
         if (
             $user &&
             $user->status_akun !== 'aktif'
-        ) {
-
+        )
+        {
             Auth::logout();
 
-            return redirect('/login')
+            return redirect()
+                ->route('login')
                 ->withErrors([
-
                     'email' =>
                         'Akun Anda dinonaktifkan.'
                 ]);

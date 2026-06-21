@@ -6,6 +6,7 @@ use App\Models\Kegiatan;
 use App\Models\SchoolClass;
 use App\Models\StudentProfile;
 use App\Models\TeacherProfile;
+use App\Models\DataCorrection;
 
 use Database\Factories\UserFactory;
 
@@ -21,14 +22,11 @@ class User extends Authenticatable
     protected $fillable = [
 
         'name',
-
         'email',
-
         'password',
-
         'role',
-
         'status_akun',
+        'foto',
     ];
 
     protected $hidden = [
@@ -69,6 +67,14 @@ class User extends Authenticatable
     {
         return $this->hasOne(
             TeacherProfile::class
+        );
+    }
+
+    // LAPORAN KESALAHAN DATA
+    public function dataCorrections()
+    {
+        return $this->hasMany(
+            DataCorrection::class
         );
     }
 

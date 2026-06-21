@@ -14,6 +14,7 @@ return new class extends Migration
 
             // USER
             $table->foreignId('user_id')
+                ->unique()
                 ->constrained()
                 ->cascadeOnDelete();
 

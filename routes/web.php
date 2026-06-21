@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\UserController;
 
 use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
 use App\Http\Controllers\Guru\MonitoringController as GuruMonitoringController;
+use App\Http\Controllers\Guru\RekapController;
 
 use App\Http\Controllers\Siswa\DashboardController as SiswaDashboardController;
 use App\Http\Controllers\Siswa\KegiatanController;
@@ -19,24 +20,6 @@ use Illuminate\Support\Facades\Route;
 
 use Inertia\Inertia;
 
-Route::get('/admin/users', [UserController::class, 'index'])
-    ->middleware(['auth', 'role:admin']);
-
-Route::get('/admin/dashboard', function () {
-    return Inertia::render('Admin/Dashboard');
-})->middleware(['auth', 'role:admin']);
-
-Route::get('/admin/profile', function () {
-    return Inertia::render('Admin/Profile/Index');
-});
-
-Route::get('/guru/dashboard', function () {
-    return Inertia::render('Guru/Dashboard');
-})->middleware(['auth', 'role:guru']);
-
-Route::get('/siswa/dashboard', function () {
-    return Inertia::render('Siswa/Dashboard');
-})->middleware(['auth', 'role:siswa']);
 /*
 |--------------------------------------------------------------------------
 | PUBLIC
@@ -48,33 +31,18 @@ Route::get('/', function () {
     return Inertia::render('Welcome', [
 
         'canLogin' =>
-            Route::has('login'),
+        Route::has('login'),
 
         'canRegister' =>
-            false,
+        false,
 
         'laravelVersion' =>
-            Application::VERSION,
+        Application::VERSION,
 
         'phpVersion' =>
-            PHP_VERSION,
+        PHP_VERSION,
     ]);
 });
-
-/*
-|--------------------------------------------------------------------------
-| DEFAULT DASHBOARD
-|--------------------------------------------------------------------------
-*/
-
-Route::get('/dashboard', function () {
-
-    return Inertia::render('Dashboard');
-
-})->middleware([
-    'auth',
-    'verified'
-])->name('dashboard');
 
 /*
 |--------------------------------------------------------------------------
@@ -109,48 +77,98 @@ Route::middleware([
 |--------------------------------------------------------------------------
 */
 
-Route::middleware([
-    'auth',
-    'check.account.status',
-    'role:admin'
-])->group(function () {
-
-    /*
-    |--------------------------------------------------------------------------
-    | DASHBOARD
-    |--------------------------------------------------------------------------
-    */
+    Route::middleware([
+        'auth',
+        'check.account.status',
+        'role:admin'
+    ])->prefix('admin')->name('admin.')->group(function () {
 
     Route::get(
-        '/admin/dashboard',
-        [AdminDashboardController::class, 'index']
-    );
+            '/profile',
+            [\App\Http\Controllers\Admin\ProfileController::class, 'index']
+        )->name('profile.index');
 
-    /*
-    |--------------------------------------------------------------------------
-    | USER MANAGEMENT
-    |--------------------------------------------------------------------------
-    */
+        Route::patch(
+            '/profile',
+            [\App\Http\Controllers\Admin\ProfileController::class, 'update']
+        )->name('profile.update');
 
-    Route::get(
-        '/admin/users',
-        [UserController::class, 'index']
-    );
+        Route::patch(
+            '/profile/password',
+            [\App\Http\Controllers\Admin\ProfileController::class, 'updatePassword']
+        )->name('profile.password');
 
-    Route::post(
-        '/admin/users',
-        [UserController::class, 'store']
-    );
+        Route::post(
+            '/profile/foto',
+            [\App\Http\Controllers\Admin\ProfileController::class, 'uploadFoto']
+        )->name('profile.foto');
 
-    Route::put(
-        '/admin/users/{user}',
-        [UserController::class, 'update']
-    );
+        Route::patch(
+            '/profile/settings',
+            [\App\Http\Controllers\Admin\ProfileController::class, 'updateSettings']
+        )->name('profile.settings');
 
-    Route::delete(
-        '/admin/users/{user}',
-        [UserController::class, 'destroy']
-    );
+        Route::delete(
+            '/profile/reset-kegiatan',
+            [\App\Http\Controllers\Admin\ProfileController::class, 'resetKegiatanData']
+        )->name('profile.reset-kegiatan');
+
+        Route::patch(
+            '/profile/deactivate-students',
+            [\App\Http\Controllers\Admin\ProfileController::class, 'deactivateAllStudents']
+        )->name('profile.deactivate-students');
+
+        /*
+        |--------------------------------------------------------------------------
+        | DASHBOARD
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/dashboard',
+            [AdminDashboardController::class, 'index']
+        )->name('dashboard');
+
+        /*
+        |--------------------------------------------------------------------------
+        | USER MANAGEMENT
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/users',
+            [UserController::class, 'index']
+        )->name('users.index');
+
+        Route::post(
+            '/users',
+            [UserController::class, 'store']
+        )->name('users.store');
+
+        Route::get(
+            '/users/corrections',
+            [UserController::class, 'corrections']
+        )->name('users.corrections');
+
+        Route::patch(
+            '/users/corrections/{correction}/resolve',
+            [UserController::class, 'resolveCorrection']
+        )->name('users.corrections.resolve');
+
+        Route::put(
+            '/users/{user}',
+            [UserController::class, 'update']
+        )->name('users.update');
+
+        Route::patch(
+            '/users/{user}/reset-password',
+            [UserController::class, 'resetPassword']
+        )->name('users.reset-password');
+
+        Route::delete(
+            '/users/{user}',
+            [UserController::class, 'destroy']
+        )->name('users.destroy');
 
     /*
     |--------------------------------------------------------------------------
@@ -159,24 +177,24 @@ Route::middleware([
     */
 
     Route::get(
-        '/admin/classes',
+        '/classes',
         [SchoolClassController::class, 'index']
-    );
+    )->name('classes.index');
 
     Route::post(
-        '/admin/classes',
+        '/classes',
         [SchoolClassController::class, 'store']
-    );
+    )->name('classes.store');
 
     Route::put(
-        '/admin/classes/{schoolClass}',
+        '/classes/{schoolClass}',
         [SchoolClassController::class, 'update']
-    );
+    )->name('classes.update');
 
     Route::delete(
-        '/admin/classes/{schoolClass}',
+        '/classes/{schoolClass}',
         [SchoolClassController::class, 'destroy']
-    );
+    )->name('classes.destroy');
 
     /*
     |--------------------------------------------------------------------------
@@ -185,14 +203,14 @@ Route::middleware([
     */
 
     Route::get(
-        '/admin/monitoring',
+        '/monitoring',
         [AdminMonitoringController::class, 'index']
-    );
+    )->name('monitoring.index');
 
     Route::get(
-        '/admin/monitoring/{kegiatan}',
+        '/monitoring/{kegiatan}',
         [AdminMonitoringController::class, 'show']
-    );
+    )->name('monitoring.show');
 });
 
 /*
@@ -205,7 +223,7 @@ Route::middleware([
     'auth',
     'check.account.status',
     'role:guru'
-])->group(function () {
+])->prefix('guru')->name('guru.')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
@@ -214,9 +232,9 @@ Route::middleware([
     */
 
     Route::get(
-        '/guru/dashboard',
+        '/dashboard',
         [GuruDashboardController::class, 'index']
-    );
+    )->name('dashboard');
 
     /*
     |--------------------------------------------------------------------------
@@ -225,19 +243,66 @@ Route::middleware([
     */
 
     Route::get(
-        '/guru/monitoring',
+        '/monitoring',
         [GuruMonitoringController::class, 'index']
-    );
+    )->name('monitoring.index');
 
     Route::get(
-        '/guru/monitoring/{kegiatan}',
+        '/monitoring/{kegiatan}',
         [GuruMonitoringController::class, 'show']
-    );
+    )->name('monitoring.show');
 
     Route::patch(
-        '/guru/monitoring/{kegiatan}/evaluasi',
+        '/monitoring/{kegiatan}/evaluasi',
         [GuruMonitoringController::class, 'evaluasi']
-    );
+    )->name('monitoring.evaluasi');
+
+    /*
+    |--------------------------------------------------------------------------
+    | REKAP
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/rekap',
+        [RekapController::class, 'index']
+    )->name('rekap.index');
+
+    Route::get(
+        '/rekap/pdf',
+        [RekapController::class, 'exportPdf']
+    )->name('rekap.pdf');
+
+    Route::get(
+        '/rekap/excel',
+        [RekapController::class, 'exportExcel']
+    )->name('rekap.excel');
+
+    Route::get(
+        '/rekap/grafik',
+        [RekapController::class, 'grafik']
+    )->name('rekap.grafik');
+
+    Route::get(
+            '/profile',
+            [\App\Http\Controllers\Guru\ProfileController::class, 'index']
+        )->name('profile.index');
+
+        Route::patch(
+            '/profile',
+            [\App\Http\Controllers\Guru\ProfileController::class, 'update']
+        )->name('profile.update');
+
+        Route::patch(
+            '/profile/password',
+            [\App\Http\Controllers\Guru\ProfileController::class, 'updatePassword']
+        )->name('profile.password');
+
+        Route::post(
+            '/profile/foto',
+            [\App\Http\Controllers\Guru\ProfileController::class, 'uploadFoto']
+        )->name('profile.foto');
+
 });
 
 /*
@@ -250,7 +315,7 @@ Route::middleware([
     'auth',
     'check.account.status',
     'role:siswa'
-])->group(function () {
+])->prefix('siswa')->name('siswa.')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
@@ -259,9 +324,9 @@ Route::middleware([
     */
 
     Route::get(
-        '/siswa/dashboard',
+        '/dashboard',
         [SiswaDashboardController::class, 'index']
-    );
+    )->name('dashboard');
 
     /*
     |--------------------------------------------------------------------------
@@ -270,14 +335,24 @@ Route::middleware([
     */
 
     Route::get(
-        '/siswa/kegiatan',
+        '/kegiatan',
         [KegiatanController::class, 'index']
-    );
+    )->name('kegiatan.index');
+
+    Route::get(
+        '/kegiatan/selfie',
+        [KegiatanController::class, 'selfie']
+    )->name('kegiatan.selfie');
+
+    Route::get(
+        '/kegiatan/success',
+        [KegiatanController::class, 'success']
+    )->name('kegiatan.success');
 
     Route::post(
-        '/siswa/kegiatan',
+        '/kegiatan',
         [KegiatanController::class, 'store']
-    );
+    )->name('kegiatan.store');
 
     /*
     |--------------------------------------------------------------------------
@@ -286,9 +361,14 @@ Route::middleware([
     */
 
     Route::get(
-        '/siswa/riwayat',
+        '/riwayat',
         [KegiatanController::class, 'history']
-    );
+    )->name('riwayat.index');
+
+    Route::get(
+        '/riwayat/{kegiatan}',
+        [KegiatanController::class, 'show']
+    )->name('riwayat.show');
 
     /*
     |--------------------------------------------------------------------------
@@ -297,14 +377,24 @@ Route::middleware([
     */
 
     Route::get(
-        '/siswa/profile',
+        '/profile',
         [StudentProfileController::class, 'index']
-    );
+    )->name('profile.index');
+
+    Route::post(
+            '/profile/foto',
+            [StudentProfileController::class, 'uploadFoto']
+        )->name('profile.foto');
 
     Route::patch(
-        '/siswa/profile',
+        '/profile',
         [StudentProfileController::class, 'update']
-    );
+    )->name('profile.update');
+
+Route::post(
+        '/profile/report-correction',
+        [StudentProfileController::class, 'reportCorrection']
+    )->name('profile.report-correction');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

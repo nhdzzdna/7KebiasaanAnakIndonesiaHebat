@@ -4,16 +4,22 @@ namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
 use App\Models\StudentProfile;
+use App\Models\DataCorrection;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Storage;
 
 class StudentProfileController extends Controller
 {
     // HALAMAN PROFIL
     public function index()
     {
-        $profile = StudentProfile::with('schoolClass')
+        $profile = StudentProfile::with([
+            'schoolClass',
+            'user'
+        ])
 
             ->firstOrCreate(
                 ['user_id' => Auth::user()->id]
@@ -29,16 +35,6 @@ class StudentProfileController extends Controller
     public function update(Request $request)
     {
         $validated = $request->validate([
-
-            'school_class_id' => 'nullable|exists:school_classes,id',
-
-            'birth_date' => 'nullable|date',
-
-            'address' => 'nullable|string|max:1000',
-
-            'parent_name' => 'nullable|string|max:255',
-
-            'parent_phone' => 'nullable|string|max:50',
 
             'religion' => 'nullable|string|max:100',
 
@@ -64,6 +60,60 @@ class StudentProfileController extends Controller
         ]);
 
         $profile->update($validated);
+
+        return redirect()->back();
+    }
+
+    // LAPORKAN KESALAHAN DATA
+    public function reportCorrection(Request $request)
+    {
+        $validated = $request->validate([
+
+            'keterangan' =>
+                'required|string|max:1000',
+        ]);
+
+        DataCorrection::create([
+
+            'user_id' =>
+                Auth::id(),
+
+            'keterangan' =>
+                $validated['keterangan'],
+        ]);
+
+        return redirect()->back()
+            ->with(
+                'success',
+                'Laporan berhasil dikirim ke admin'
+            );
+    }
+
+    // UPLOAD FOTO PROFIL
+    public function uploadFoto(Request $request)
+    {
+        $request->validate([
+
+            'foto' =>
+                'required|image|max:2048',
+        ]);
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($user->foto) {
+
+            Storage::disk('public')
+                ->delete($user->foto);
+        }
+
+        $path = $request->file('foto')
+            ->store('foto-profil', 'public');
+
+        $user->update([
+
+            'foto' => $path,
+        ]);
 
         return redirect()->back();
     }

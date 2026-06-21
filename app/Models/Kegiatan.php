@@ -58,6 +58,11 @@ class Kegiatan extends Model
         'detail_ibadah_centang' => 'array',
     ];
 
+    protected $appends = [
+
+        'habits_filled_count',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -76,5 +81,26 @@ class Kegiatan extends Model
     public function isEvaluated()
     {
         return $this->status === 'evaluated';
+    }
+
+    // JUMLAH KEBIASAAN YANG TERISI (X DARI 7)
+    public function getHabitsFilledCountAttribute()
+    {
+        $habitFields = [
+            'waktu_bangun',
+            'detail_ibadah_centang',
+            'menu_makan',
+            'jenis_olahraga',
+            'belajar_mandiri',
+            'aktivitas_sosial',
+            'waktu_tidur',
+        ];
+
+        return collect($habitFields)
+            ->filter(fn ($field) =>
+                !empty($this->$field)
+            )
+
+            ->count();
     }
 }

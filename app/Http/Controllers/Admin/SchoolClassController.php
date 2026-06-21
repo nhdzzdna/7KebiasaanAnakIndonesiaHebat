@@ -218,8 +218,23 @@ class SchoolClassController extends Controller
                 ]);
             }
         }
+        $oldTeacherId = $schoolClass->teacher_id;
 
         $schoolClass->update($validated);
+
+        if (
+            $oldTeacherId &&
+            $oldTeacherId != $validated['teacher_id']
+        ) {
+
+            TeacherProfile::where(
+                'user_id',
+                $oldTeacherId
+            )->update([
+
+                'school_class_id' => null
+            ]);
+        }
 
         // SYNC TEACHER PROFILE
         if (!empty($validated['teacher_id'])) {
@@ -249,7 +264,17 @@ class SchoolClassController extends Controller
         SchoolClass $schoolClass
     ) {
 
-        // RESET TEACHER PROFILE
+        if (
+            $schoolClass->students()->count() > 0
+        ) {
+
+            return back()->withErrors([
+
+                'class' =>
+                    'Kelas masih memiliki siswa.'
+            ]);
+        }
+
         TeacherProfile::where(
             'school_class_id',
             $schoolClass->id

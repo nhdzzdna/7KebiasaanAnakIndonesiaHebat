@@ -47,6 +47,24 @@ class DashboardController extends Controller
             $todayReport?->compliance_percentage
             ?? 0;
 
+        // JUMLAH KEBIASAAN TERISI HARI INI
+        $habitFields = [
+            'waktu_bangun',
+            'detail_ibadah_centang',
+            'menu_makan',
+            'jenis_olahraga',
+            'belajar_mandiri',
+            'aktivitas_sosial',
+            'waktu_tidur',
+        ];
+
+        $habitsFilledToday = collect($habitFields)
+            ->filter(fn ($field) =>
+                !empty($todayReport?->$field)
+            )
+
+            ->count();
+
         // TOTAL LAPORAN
         $totalReports = Kegiatan::where(
             'user_id',
@@ -93,6 +111,11 @@ class DashboardController extends Controller
             $userId
         )
 
+        ->where(
+            'status',
+            'evaluated'
+        )
+
         ->whereNotNull('nilai_guru')
 
         ->latest()
@@ -108,6 +131,11 @@ class DashboardController extends Controller
             'user_id',
             $userId
         )
+
+        ->whereIn('status', [
+            'submitted',
+            'evaluated'
+        ])
 
         ->latest()
 
@@ -129,6 +157,7 @@ class DashboardController extends Controller
         ->orderByDesc('tanggal')
 
         ->pluck('tanggal')
+        ->unique()
 
         ->map(fn ($date) => $date->format('Y-m-d'))
 
@@ -152,6 +181,51 @@ class DashboardController extends Controller
             }
         }
 
+        // GRAFIK MINGGUAN (SENIN - MINGGU MINGGU INI)
+        $startOfWeek = now()->startOfWeek();
+        $endOfWeek = now()->endOfWeek();
+
+        $weeklyData = Kegiatan::where(
+            'user_id',
+            $userId
+        )
+
+        ->whereBetween('tanggal', [
+            $startOfWeek->toDateString(),
+            $endOfWeek->toDateString()
+        ])
+
+        ->whereIn('status', [
+            'submitted',
+            'evaluated'
+        ])
+
+        ->get()
+
+        ->keyBy(fn ($k) => $k->tanggal->format('Y-m-d'));
+
+        $weeklyChart = collect(range(0, 6))
+            ->map(function ($i) use ($startOfWeek, $weeklyData) {
+
+                $date = $startOfWeek->copy()->addDays($i);
+
+                $dateKey = $date->format('Y-m-d');
+
+                $report = $weeklyData->get($dateKey);
+
+                return [
+                    'hari' => $date->translatedFormat('D'),
+
+                    'tanggal' => $dateKey,
+
+                    'compliance' =>
+                        $report?->compliance_percentage
+                        ?? 0,
+                ];
+            })
+
+            ->values();
+
         return Inertia::render(
             'Siswa/Dashboard',
             [
@@ -172,6 +246,11 @@ class DashboardController extends Controller
 
                     'streak' =>
                         $streak,
+
+                    'habits_filled_today' =>
+                        $habitsFilledToday,
+
+                    'habits_total' => 7,
                 ],
 
                 'todayReport' =>
@@ -200,6 +279,9 @@ class DashboardController extends Controller
 
                 'recentReports' =>
                     $recentReports,
+
+                'weeklyChart' =>
+                    $weeklyChart,
             ]
         );
     }

@@ -14,6 +14,7 @@ return new class extends Migration
 
             // USER GURU
             $table->foreignId('user_id')
+                ->unique()
                 ->constrained()
                 ->cascadeOnDelete();
 

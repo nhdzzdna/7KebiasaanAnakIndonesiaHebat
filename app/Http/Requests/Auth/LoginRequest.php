@@ -49,20 +49,31 @@ class LoginRequest extends FormRequest
             $this->email
         )->first();
 
-        // AKUN NONAKTIF
-        if (
-            $user &&
-            $user->status_akun !== 'aktif'
-        ) {
+        // VR-01-1: EMAIL TIDAK TERDAFTAR
+        if (! $user) {
+
+            RateLimiter::hit(
+                $this->throttleKey()
+            );
 
             throw ValidationException::withMessages([
 
                 'email' =>
-                    'Akun Anda sedang nonaktif.'
+                    'Email tidak ditemukan'
             ]);
         }
 
-        // LOGIN
+        // VR-01-4: AKUN NONAKTIF
+        if ($user->status_akun !== 'aktif') {
+
+            throw ValidationException::withMessages([
+
+                'email' =>
+                    'Akun Anda telah dinonaktifkan'
+            ]);
+        }
+
+        // VR-01-2: PASSWORD SALAH
         if (! Auth::attempt([
             'email' => $this->email,
             'password' => $this->password,
@@ -74,8 +85,8 @@ class LoginRequest extends FormRequest
 
             throw ValidationException::withMessages([
 
-                'email' =>
-                    trans('auth.failed'),
+                'password' =>
+                    'Password salah'
             ]);
         }
 
