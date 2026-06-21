@@ -33,6 +33,16 @@ class KegiatanController extends Controller
         );
     }
 
+    public function selfie()
+    {
+        return Inertia::render('Siswa/Kegiatan/Selfie');
+    }
+
+    public function success()
+    {
+        return Inertia::render('Siswa/Kegiatan/Succes');
+    }
+
     public function store(Request $request)
     {
         // CEK LAPORAN HARI INI
@@ -291,7 +301,7 @@ class KegiatanController extends Controller
             ->withQueryString();
 
         return Inertia::render(
-            'Siswa/Kegiatan/History',
+            'Siswa/Riwayat/Index',
             [
 
                 'kegiatans' =>

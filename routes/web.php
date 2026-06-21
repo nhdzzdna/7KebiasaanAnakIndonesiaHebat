@@ -238,6 +238,18 @@ Route::middleware([
         '/guru/monitoring/{kegiatan}/evaluasi',
         [GuruMonitoringController::class, 'evaluasi']
     );
+
+    Route::get('/guru/monitoring/show', function () {
+        return Inertia::render('Guru/Monitoring/Show');
+    });
+
+    Route::get('/guru/rekap', function () {
+        return Inertia::render('Guru/Rekap/Index');
+    });
+
+    Route::get('/guru/profile', function () {
+        return Inertia::render('Guru/Profile/Index');
+    });
 });
 
 /*
@@ -279,6 +291,15 @@ Route::middleware([
         [KegiatanController::class, 'store']
     );
 
+    Route::get(
+        '/siswa/kegiatan/selfie',
+        [KegiatanController::class, 'selfie']
+    );
+    Route::get(
+        '/siswa/kegiatan/succes',
+        [KegiatanController::class, 'success']
+    );
+
     /*
     |--------------------------------------------------------------------------
     | HISTORY
@@ -289,6 +310,11 @@ Route::middleware([
         '/siswa/riwayat',
         [KegiatanController::class, 'history']
     );
+
+    Route::get(
+        '/siswa/riwayat/show', function () {
+        return Inertia::render('Siswa/Riwayat/Show');
+    });
 
     /*
     |--------------------------------------------------------------------------
