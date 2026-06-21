@@ -7,3 +7,7 @@
 body {
     font-family: 'Poppins', sans-serif;
 }
+
+html {
+    font-size: 87.5%; /* default browser 16px → jadi 14px */
+}

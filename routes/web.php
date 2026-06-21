@@ -354,6 +354,15 @@ Route::middleware([
         [KegiatanController::class, 'store']
     )->name('kegiatan.store');
 
+    Route::get(
+        '/siswa/kegiatan/selfie',
+        [KegiatanController::class, 'selfie']
+    );
+    Route::get(
+        '/siswa/kegiatan/succes',
+        [KegiatanController::class, 'success']
+    );
+
     /*
     |--------------------------------------------------------------------------
     | HISTORY
@@ -369,6 +378,11 @@ Route::middleware([
         '/riwayat/{kegiatan}',
         [KegiatanController::class, 'show']
     )->name('riwayat.show');
+
+    Route::get(
+        '/siswa/riwayat/show', function () {
+        return Inertia::render('Siswa/Riwayat/Show');
+    });
 
     /*
     |--------------------------------------------------------------------------
