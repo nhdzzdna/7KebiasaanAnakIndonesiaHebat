@@ -339,6 +339,11 @@ Route::middleware([
         [KegiatanController::class, 'index']
     )->name('kegiatan.index');
 
+    Route::post(
+        '/kegiatan',
+        [KegiatanController::class, 'store']
+    )->name('kegiatan.store');
+
     Route::get(
         '/kegiatan/selfie',
         [KegiatanController::class, 'selfie']
@@ -348,20 +353,6 @@ Route::middleware([
         '/kegiatan/success',
         [KegiatanController::class, 'success']
     )->name('kegiatan.success');
-
-    Route::post(
-        '/kegiatan',
-        [KegiatanController::class, 'store']
-    )->name('kegiatan.store');
-
-    Route::get(
-        '/siswa/kegiatan/selfie',
-        [KegiatanController::class, 'selfie']
-    );
-    Route::get(
-        '/siswa/kegiatan/succes',
-        [KegiatanController::class, 'success']
-    );
 
     /*
     |--------------------------------------------------------------------------
@@ -378,11 +369,6 @@ Route::middleware([
         '/riwayat/{kegiatan}',
         [KegiatanController::class, 'show']
     )->name('riwayat.show');
-
-    Route::get(
-        '/siswa/riwayat/show', function () {
-        return Inertia::render('Siswa/Riwayat/Show');
-    });
 
     /*
     |--------------------------------------------------------------------------
