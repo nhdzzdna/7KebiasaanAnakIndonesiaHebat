@@ -126,6 +126,13 @@ class DashboardController extends Controller
         $latestFeedback =
             $latestEvaluation?->catatan_guru;
 
+        // NAMA WALI KELAS (UNTUK DITAMPILKAN DI CATATAN GURU)
+        $namaWaliKelas =
+            $user->studentProfile
+                ?->schoolClass
+                ?->teacher
+                ?->name;
+
         // RIWAYAT TERBARU
         $recentReports = Kegiatan::where(
             'user_id',
@@ -276,6 +283,9 @@ class DashboardController extends Controller
 
                 'latestFeedback' =>
                     $latestFeedback,
+
+                'namaWaliKelas' =>
+                    $namaWaliKelas,
 
                 'recentReports' =>
                     $recentReports,

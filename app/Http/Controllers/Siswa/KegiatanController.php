@@ -24,18 +24,53 @@ class KegiatanController extends Controller
 
         ->first();
 
+        // SUDAH SUBMIT HARI INI, ARAHKAN KE HALAMAN SUKSES
+        if (
+            $kegiatanHariIni
+            && $kegiatanHariIni->status !== 'draft'
+        ) {
+
+            return redirect()->route(
+                'siswa.kegiatan.success'
+            );
+        }
+
+        $religion = Auth::user()
+            ->studentProfile
+            ?->religion;
+
         return Inertia::render(
             'Siswa/Kegiatan/Index',
             [
                 'kegiatanHariIni' =>
-                    $kegiatanHariIni
+                    $kegiatanHariIni,
+
+                'religion' =>
+                    $religion,
             ]
         );
     }
 
     public function selfie()
     {
-        $kegiatan = Kegiatan::where(
+        $kegiatan = Kegiatan::where('user_id', Auth::id())
+            ->whereDate('tanggal', now()->toDateString())
+            ->first();
+
+        if (!$kegiatan) {
+            return redirect()->route('siswa.kegiatan.index');
+        }
+
+        return Inertia::render('Siswa/Kegiatan/Selfie', [
+
+            'kegiatanHariIni' =>
+                $kegiatan,
+        ]);
+    }
+
+    public function success()
+    {
+        $kegiatanHariIni = Kegiatan::where(
             'user_id',
             Auth::id()
         )
@@ -47,22 +82,20 @@ class KegiatanController extends Controller
 
         ->first();
 
-        if (!$kegiatan) {
+        if (!$kegiatanHariIni) {
 
-            return redirect()
-                ->route(
-                    'siswa.kegiatan.index'
-                );
+            return redirect()->route(
+                'siswa.kegiatan.index'
+            );
         }
 
         return Inertia::render(
-            'Siswa/Kegiatan/Selfie'
+            'Siswa/Kegiatan/Succes',
+            [
+                'kegiatanHariIni' =>
+                    $kegiatanHariIni,
+            ]
         );
-    }
-
-    public function success()
-    {
-        return Inertia::render('Siswa/Kegiatan/Succes');
     }
 
     public function store(Request $request)
@@ -150,6 +183,30 @@ class KegiatanController extends Controller
             'waktu_tidur' =>
                 'nullable|date_format:H:i',
 
+            'keterangan_bangun' =>
+                'nullable|string|max:500',
+
+            'keterangan_tidur' =>
+                'nullable|string|max:500',
+
+            'bukti_foto_bangun' =>
+                'nullable|image|mimes:jpg,jpeg,png|max:2048',
+
+            'bukti_foto_ibadah' =>
+                'nullable|image|mimes:jpg,jpeg,png|max:2048',
+
+            'bukti_foto_makan' =>
+                'nullable|image|mimes:jpg,jpeg,png|max:2048',
+
+            'bukti_foto_olahraga' =>
+                'nullable|image|mimes:jpg,jpeg,png|max:2048',
+
+            'bukti_foto_belajar' =>
+                'nullable|image|mimes:jpg,jpeg,png|max:2048',
+
+            'bukti_foto_sosial' =>
+                'nullable|image|mimes:jpg,jpeg,png|max:2048',
+
             'bukti_foto' =>
                 'nullable|image|mimes:jpg,jpeg,png|max:2048',
 
@@ -164,6 +221,38 @@ class KegiatanController extends Controller
             'status' =>
                 'required|in:draft,submitted',
         ]);
+
+        // GABUNGKAN DATA LAMA + DATA BARU (UNTUK HITUNG COMPLIANCE YANG AKURAT)
+        $dataFinal = [
+
+            'waktu_bangun' =>
+                $validated['waktu_bangun']
+                ?? $existing?->waktu_bangun,
+
+            'detail_ibadah_centang' =>
+                $validated['detail_ibadah_centang']
+                ?? $existing?->detail_ibadah_centang,
+
+            'menu_makan' =>
+                $validated['menu_makan']
+                ?? $existing?->menu_makan,
+
+            'jenis_olahraga' =>
+                $validated['jenis_olahraga']
+                ?? $existing?->jenis_olahraga,
+
+            'belajar_mandiri' =>
+                $validated['belajar_mandiri']
+                ?? $existing?->belajar_mandiri,
+
+            'aktivitas_sosial' =>
+                $validated['aktivitas_sosial']
+                ?? $existing?->aktivitas_sosial,
+
+            'waktu_tidur' =>
+                $validated['waktu_tidur']
+                ?? $existing?->waktu_tidur,
+        ];
 
         // HITUNG COMPLIANCE
         $habitFields = [
@@ -187,7 +276,7 @@ class KegiatanController extends Controller
 
         foreach ($habitFields as $field) {
 
-            if (!empty($validated[$field])) {
+            if (!empty($dataFinal[$field])) {
 
                 $filledHabits++;
             }
@@ -212,6 +301,78 @@ class KegiatanController extends Controller
                 ->store('bukti-foto', 'public');
         }
 
+        $buktiFotoBangun = $existing?->bukti_foto_bangun;
+
+        if ($request->hasFile('bukti_foto_bangun')) {
+
+            if ($buktiFotoBangun) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($buktiFotoBangun);
+            }
+
+            $buktiFotoBangun = $request->file('bukti_foto_bangun')
+                ->store('bukti-foto', 'public');
+        }
+
+        $buktiFotoIbadah = $existing?->bukti_foto_ibadah;
+
+        if ($request->hasFile('bukti_foto_ibadah')) {
+
+            if ($buktiFotoIbadah) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($buktiFotoIbadah);
+            }
+
+            $buktiFotoIbadah = $request->file('bukti_foto_ibadah')
+                ->store('bukti-foto', 'public');
+        }
+
+        $buktiFotoMakan = $existing?->bukti_foto_makan;
+
+        if ($request->hasFile('bukti_foto_makan')) {
+
+            if ($buktiFotoMakan) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($buktiFotoMakan);
+            }
+
+            $buktiFotoMakan = $request->file('bukti_foto_makan')
+                ->store('bukti-foto', 'public');
+        }
+
+        $buktiFotoOlahraga = $existing?->bukti_foto_olahraga;
+
+        if ($request->hasFile('bukti_foto_olahraga')) {
+
+            if ($buktiFotoOlahraga) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($buktiFotoOlahraga);
+            }
+
+            $buktiFotoOlahraga = $request->file('bukti_foto_olahraga')
+                ->store('bukti-foto', 'public');
+        }
+
+        $buktiFotoBelajar = $existing?->bukti_foto_belajar;
+
+        if ($request->hasFile('bukti_foto_belajar')) {
+
+            if ($buktiFotoBelajar) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($buktiFotoBelajar);
+            }
+
+            $buktiFotoBelajar = $request->file('bukti_foto_belajar')
+                ->store('bukti-foto', 'public');
+        }
+
+        $buktiFotoSosial = $existing?->bukti_foto_sosial;
+
+        if ($request->hasFile('bukti_foto_sosial')) {
+
+            if ($buktiFotoSosial) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($buktiFotoSosial);
+            }
+
+            $buktiFotoSosial = $request->file('bukti_foto_sosial')
+                ->store('bukti-foto', 'public');
+        }
+
         // SELFIE VALIDASI
         $selfieValidasi = $existing?->selfie_validasi;
 
@@ -232,65 +393,69 @@ class KegiatanController extends Controller
 
             Kegiatan::updateOrCreate(
                 [
-                    'user_id' =>
-                        Auth::user()->id,
+                    'user_id' => Auth::user()->id,
 
-                    'tanggal' =>
-                        now()->toDateString(),
+                    'tanggal' => now()->toDateString(),
                 ],
                 [
-                    'waktu_bangun' =>
-                        $validated['waktu_bangun'],
+                    'waktu_bangun' => $dataFinal['waktu_bangun'],
 
-                    'detail_ibadah_centang' =>
-                        $validated['detail_ibadah_centang'],
+                    'detail_ibadah_centang' => $dataFinal['detail_ibadah_centang'],
 
                     'detail_ibadah_lain' =>
-                        $validated['detail_ibadah_lain'],
+                        $validated['detail_ibadah_lain']
+                        ?? $existing?->detail_ibadah_lain,
 
-                    'menu_makan' =>
-                        $validated['menu_makan'],
+                    'menu_makan' => $dataFinal['menu_makan'],
 
                     'jumlah_air' =>
-                        $validated['jumlah_air'],
+                        $validated['jumlah_air']
+                        ?? $existing?->jumlah_air,
 
-                    'jenis_olahraga' =>
-                        $validated['jenis_olahraga'],
+                    'jenis_olahraga' => $dataFinal['jenis_olahraga'],
 
                     'durasi_olahraga' =>
-                        $validated['durasi_olahraga'],
+                        $validated['durasi_olahraga']
+                        ?? $existing?->durasi_olahraga,
 
-                    'belajar_mandiri' =>
-                        $validated['belajar_mandiri'],
+                    'belajar_mandiri' => $dataFinal['belajar_mandiri'],
 
                     'durasi_belajar' =>
-                        $validated['durasi_belajar'],
+                        $validated['durasi_belajar']
+                        ?? $existing?->durasi_belajar,
 
-                    'aktivitas_sosial' =>
-                        $validated['aktivitas_sosial'],
+                    'aktivitas_sosial' => $dataFinal['aktivitas_sosial'],
 
-                    'waktu_tidur' =>
-                        $validated['waktu_tidur'],
+                    'waktu_tidur' => $dataFinal['waktu_tidur'],
 
-                    'bukti_foto' =>
-                        $buktiFoto,
+                    'bukti_foto' => $buktiFoto,
 
-                    'selfie_validasi' =>
-                        $selfieValidasi,
+                    'bukti_foto_bangun' => $buktiFotoBangun,
+                    'bukti_foto_ibadah' => $buktiFotoIbadah,
+                    'bukti_foto_makan' => $buktiFotoMakan,
+                    'bukti_foto_olahraga' => $buktiFotoOlahraga,
+                    'bukti_foto_belajar' => $buktiFotoBelajar,
+                    'bukti_foto_sosial' => $buktiFotoSosial,
 
-                    'status' =>
-                        $validated['status'],
+                    'keterangan_bangun' =>
+                        $validated['keterangan_bangun']
+                        ?? $existing?->keterangan_bangun,
 
-                    'submitted_at' =>
+                    'keterangan_tidur' =>
+                        $validated['keterangan_tidur']
+                        ?? $existing?->keterangan_tidur,
 
-                        $validated['status'] === 'submitted'
+                    'selfie_validasi' => $selfieValidasi,
+
+                    'status' => $validated['status'],
+
+                    'submitted_at' => $validated['status'] === 'submitted'
 
                             ? now()
 
                             : null,
 
-                    'compliance_percentage' =>
-                        $compliance,
+                    'compliance_percentage' => $compliance,
                 ]
             );
 
@@ -298,12 +463,15 @@ class KegiatanController extends Controller
 
             return back()->withErrors([
 
-                'tanggal' =>
-                    'Kegiatan hari ini sudah terkirim'
+                'tanggal' => 'Kegiatan hari ini sudah terkirim'
             ]);
         }
 
-        return redirect()->back();
+        if ($validated['status'] === 'submitted') {
+                    return redirect()->route('siswa.kegiatan.success');
+                }
+
+                return redirect()->back();
     }
 
     public function history(Request $request)
@@ -326,6 +494,15 @@ class KegiatanController extends Controller
                 $request->tanggal
             );
         }
+
+        // FILTER BULAN & TAHUN
+                if ($request->filled('bulan')) {
+                    $query->whereMonth('tanggal', $request->bulan);
+                }
+
+                if ($request->filled('tahun')) {
+                    $query->whereYear('tanggal', $request->tahun);
+                }
 
         // FILTER STATUS
         if ($request->filled('status')) {
@@ -367,6 +544,9 @@ class KegiatanController extends Controller
 
                     'nilai_guru' =>
                         $request->nilai_guru,
+
+                    'bulan' => $request->bulan,
+                    'tahun' => $request->tahun,
                 ]
             ]
         );
@@ -392,11 +572,11 @@ class KegiatanController extends Controller
         }
 
         return Inertia::render(
-            'Siswa/Kegiatan/Show',
-            [
-                'kegiatan' => $kegiatan
-            ]
-        );
+                    'Siswa/Riwayat/Show',
+                    [
+                        'kegiatan' => $kegiatan
+                    ]
+                );
     }
 
 }

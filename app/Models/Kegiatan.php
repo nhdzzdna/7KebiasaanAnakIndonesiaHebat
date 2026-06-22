@@ -47,6 +47,15 @@ class Kegiatan extends Model
         'nilai_guru',
 
         'catatan_guru',
+
+        'keterangan_bangun',
+        'keterangan_tidur',
+        'bukti_foto_bangun',
+        'bukti_foto_ibadah',
+        'bukti_foto_makan',
+        'bukti_foto_olahraga',
+        'bukti_foto_belajar',
+        'bukti_foto_sosial',
     ];
 
     protected $casts = [
