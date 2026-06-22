@@ -204,7 +204,7 @@ function warnaBarMingguan(hari) {
                 </div>
                 <div>
                     <p class="text-xs font-bold text-[#1B7F5A]">{{ namaWaliKelas ?? 'Wali Kelas' }}</p>
-                    <p class="text-xs text-gray-400">{{ latestEvaluation.tanggal }}</p>
+                    <p class="text-xs text-gray-400">{{ new Date(latestEvaluation.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) }}</p>
                 </div>
               </div>
               <p v-if="latestFeedback" class="text-xs text-gray-600 italic leading-relaxed">

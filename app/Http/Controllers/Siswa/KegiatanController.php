@@ -61,6 +61,10 @@ class KegiatanController extends Controller
             return redirect()->route('siswa.kegiatan.index');
         }
 
+        if ($kegiatan->status !== 'draft') {
+            return redirect()->route('siswa.kegiatan.success');
+        }
+
         return Inertia::render('Siswa/Kegiatan/Selfie', [
 
             'kegiatanHariIni' =>
@@ -450,9 +454,7 @@ class KegiatanController extends Controller
                     'status' => $validated['status'],
 
                     'submitted_at' => $validated['status'] === 'submitted'
-
-                            ? now()
-
+                            ? ($existing?->submitted_at ?? now())
                             : null,
 
                     'compliance_percentage' => $compliance,
@@ -527,12 +529,21 @@ class KegiatanController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        $namaGuru = Auth::user()
+            ->studentProfile
+            ?->schoolClass
+            ?->teacher
+            ?->name;
+
         return Inertia::render(
             'Siswa/Riwayat/Index',
             [
 
                 'kegiatans' =>
                     $kegiatans,
+
+                'namaGuru' =>
+                    $namaGuru,
 
                 'filters' => [
 
@@ -571,10 +582,14 @@ class KegiatanController extends Controller
             abort(404);
         }
 
+        $kegiatan->load('user.studentProfile.schoolClass.teacher');
+        $namaGuru = $kegiatan->user?->studentProfile?->schoolClass?->teacher?->name;
+
         return Inertia::render(
                     'Siswa/Riwayat/Show',
                     [
-                        'kegiatan' => $kegiatan
+                        'kegiatan' => $kegiatan,
+                        'namaGuru' => $namaGuru,
                     ]
                 );
     }

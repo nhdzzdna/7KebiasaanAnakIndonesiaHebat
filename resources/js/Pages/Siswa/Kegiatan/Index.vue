@@ -28,6 +28,14 @@ const placeholderIbadahLainnya = {
 
 const daftarChecklistIbadah = checklistIbadahPerAgama[props.religion] ?? []
 const placeholderLainnya = placeholderIbadahLainnya[props.religion] ?? 'contoh: ibadah lainnya...'
+const hariIniFormatted = new Date().toLocaleDateString('id-ID', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+})
+
+// CEK APAKAH FOTO BUKTI UNTUK FIELD INI SUDAH ADA DI DRAFT TERSIMPAN
+function fotoSudahAda(field) {
+    return !!props.kegiatanHariIni?.[field]
+}
 
 const form = useForm({
     waktu_bangun: props.kegiatanHariIni?.waktu_bangun ?? '',
@@ -74,7 +82,7 @@ function lanjutKeSelfie() {
       <!-- ===== HEADER ===== -->
       <div>
         <h1 class="text-2xl font-bold text-gray-800">Catat Kegiatan Harian</h1>
-        <p class="text-gray-400 text-sm mt-0.5">Selasa, 21 Januari 2025</p>
+        <p class="text-gray-400 text-sm mt-0.5">{{ hariIniFormatted }}</p>
       </div>
 
       <!-- ===== STEP INDICATOR ===== -->
@@ -115,10 +123,13 @@ function lanjutKeSelfie() {
             ></textarea>
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">📷 Foto Bukti (opsional)</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-2">
+              📷 Foto Bukti (opsional)
+              <span v-if="fotoSudahAda('bukti_foto_bangun') && !form.bukti_foto_bangun" class="text-[10px] font-semibold text-[#1B7F5A] bg-green-50 px-2 py-0.5 rounded-full">✓ Foto sudah ada</span>
+            </label>
             <label class="flex items-center gap-2 text-gray-400 text-sm cursor-pointer hover:text-gray-600 border border-dashed border-gray-300 rounded-xl px-3 py-2.5">
               <span>📎</span>
-              <span>{{ form.bukti_foto_bangun ? form.bukti_foto_bangun.name : 'Lampirkan foto bukti bangun pagi' }}</span>
+              <span>{{ form.bukti_foto_bangun ? form.bukti_foto_bangun.name : (fotoSudahAda('bukti_foto_bangun') ? 'Ganti foto bukti bangun pagi' : 'Lampirkan foto bukti bangun pagi') }}</span>
               <input type="file" accept="image/*" class="hidden" @change="form.bukti_foto_bangun = $event.target.files[0]" />
             </label>
           </div>
@@ -167,10 +178,13 @@ function lanjutKeSelfie() {
             ></textarea>
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">📷 Foto Bukti (opsional)</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-2">
+              📷 Foto Bukti (opsional)
+              <span v-if="fotoSudahAda('bukti_foto_ibadah') && !form.bukti_foto_ibadah" class="text-[10px] font-semibold text-[#1B7F5A] bg-green-50 px-2 py-0.5 rounded-full">✓ Foto sudah ada</span>
+            </label>
             <label class="flex items-center gap-2 text-gray-400 text-sm cursor-pointer hover:text-gray-600 border border-dashed border-gray-300 rounded-xl px-3 py-2.5">
               <span>📎</span>
-              <span>{{ form.bukti_foto_ibadah ? form.bukti_foto_ibadah.name : 'Lampirkan foto bukti ibadah' }}</span>
+              <span>{{ form.bukti_foto_ibadah ? form.bukti_foto_ibadah.name : (fotoSudahAda('bukti_foto_ibadah') ? 'Ganti foto bukti ibadah' : 'Lampirkan foto bukti ibadah') }}</span>
               <input type="file" accept="image/*" class="hidden" @change="form.bukti_foto_ibadah = $event.target.files[0]" />
             </label>
           </div>
@@ -203,10 +217,13 @@ function lanjutKeSelfie() {
             />
           </div>
             <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">📷 Foto Bukti (opsional)</label>
+              <label class="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-2">
+                📷 Foto Bukti (opsional)
+                <span v-if="fotoSudahAda('bukti_foto_makan') && !form.bukti_foto_makan" class="text-[10px] font-semibold text-[#1B7F5A] bg-green-50 px-2 py-0.5 rounded-full">✓ Foto sudah ada</span>
+              </label>
               <label class="flex items-center gap-2 text-gray-400 text-sm cursor-pointer hover:text-gray-600 border border-dashed border-gray-300 rounded-xl px-3 py-2.5">
                 <span>📎</span>
-                <span>{{ form.bukti_foto_makan ? form.bukti_foto_makan.name : 'Lampirkan foto makanan sehat & bergizi hari ini' }}</span>
+                <span>{{ form.bukti_foto_makan ? form.bukti_foto_makan.name : (fotoSudahAda('bukti_foto_makan') ? 'Ganti foto makanan sehat & bergizi hari ini' : 'Lampirkan foto makanan sehat & bergizi hari ini') }}</span>
                 <input type="file" accept="image/*" class="hidden" @change="form.bukti_foto_makan = $event.target.files[0]" />
               </label>
             </div>
@@ -241,10 +258,13 @@ function lanjutKeSelfie() {
             </div>
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">📷 Foto Bukti (opsional)</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-2">
+              📷 Foto Bukti (opsional)
+              <span v-if="fotoSudahAda('bukti_foto_olahraga') && !form.bukti_foto_olahraga" class="text-[10px] font-semibold text-[#1B7F5A] bg-green-50 px-2 py-0.5 rounded-full">✓ Foto sudah ada</span>
+            </label>
             <label class="flex items-center gap-2 text-gray-400 text-sm cursor-pointer hover:text-gray-600 border border-dashed border-gray-300 rounded-xl px-3 py-2.5">
               <span>📎</span>
-              <span>{{ form.bukti_foto_olahraga ? form.bukti_foto_olahraga.name : 'Lampirkan foto bukti olahraga' }}</span>
+              <span>{{ form.bukti_foto_olahraga ? form.bukti_foto_olahraga.name : (fotoSudahAda('bukti_foto_olahraga') ? 'Ganti foto bukti olahraga' : 'Lampirkan foto bukti olahraga') }}</span>
               <input type="file" accept="image/*" class="hidden" @change="form.bukti_foto_olahraga = $event.target.files[0]" />
             </label>
           </div>
@@ -279,10 +299,13 @@ function lanjutKeSelfie() {
             </div>
           </div>
             <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">📷 Foto Bukti (opsional)</label>
+              <label class="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-2">
+                📷 Foto Bukti (opsional)
+                <span v-if="fotoSudahAda('bukti_foto_belajar') && !form.bukti_foto_belajar" class="text-[10px] font-semibold text-[#1B7F5A] bg-green-50 px-2 py-0.5 rounded-full">✓ Foto sudah ada</span>
+              </label>
               <label class="flex items-center gap-2 text-gray-400 text-sm cursor-pointer hover:text-gray-600 border border-dashed border-gray-300 rounded-xl px-3 py-2.5">
                 <span>📎</span>
-                <span>{{ form.bukti_foto_belajar ? form.bukti_foto_belajar.name : 'Lampirkan suasana belajar / buku / tugas' }}</span>
+                <span>{{ form.bukti_foto_belajar ? form.bukti_foto_belajar.name : (fotoSudahAda('bukti_foto_belajar') ? 'Ganti suasana belajar / buku / tugas' : 'Lampirkan suasana belajar / buku / tugas') }}</span>
                 <input type="file" accept="image/*" class="hidden" @change="form.bukti_foto_belajar = $event.target.files[0]" />
               </label>
             </div>
@@ -306,10 +329,13 @@ function lanjutKeSelfie() {
             ></textarea>
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">📷 Foto Bukti (opsional)</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-2">
+              📷 Foto Bukti (opsional)
+              <span v-if="fotoSudahAda('bukti_foto_sosial') && !form.bukti_foto_sosial" class="text-[10px] font-semibold text-[#1B7F5A] bg-green-50 px-2 py-0.5 rounded-full">✓ Foto sudah ada</span>
+            </label>
             <label class="flex items-center gap-2 text-gray-400 text-sm cursor-pointer hover:text-gray-600 border border-dashed border-gray-300 rounded-xl px-3 py-2.5">
               <span>📎</span>
-              <span>{{ form.bukti_foto_sosial ? form.bukti_foto_sosial.name : 'Lampirkan foto aktivitas sosial' }}</span>
+              <span>{{ form.bukti_foto_sosial ? form.bukti_foto_sosial.name : (fotoSudahAda('bukti_foto_sosial') ? 'Ganti foto aktivitas sosial' : 'Lampirkan foto aktivitas sosial') }}</span>
               <input type="file" accept="image/*" class="hidden" @change="form.bukti_foto_sosial = $event.target.files[0]" />
             </label>
           </div>
@@ -341,10 +367,13 @@ function lanjutKeSelfie() {
             ></textarea>
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">📷 Foto Bukti (opsional)</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-2">
+              📷 Foto Bukti (opsional)
+              <span v-if="fotoSudahAda('bukti_foto') && !form.bukti_foto" class="text-[10px] font-semibold text-[#1B7F5A] bg-green-50 px-2 py-0.5 rounded-full">✓ Foto sudah ada</span>
+            </label>
             <label class="flex items-center gap-2 text-gray-400 text-sm cursor-pointer hover:text-gray-600 border border-dashed border-gray-300 rounded-xl px-3 py-2.5">
               <span>📎</span>
-              <span>{{ form.bukti_foto ? form.bukti_foto.name : 'Lampirkan foto bukti tidur malam' }}</span>
+              <span>{{ form.bukti_foto ? form.bukti_foto.name : (fotoSudahAda('bukti_foto') ? 'Ganti foto bukti tidur malam' : 'Lampirkan foto bukti tidur malam') }}</span>
               <input type="file" accept="image/*" class="hidden" @change="form.bukti_foto = $event.target.files[0]" />
             </label>
           </div>

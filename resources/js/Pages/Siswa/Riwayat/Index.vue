@@ -6,11 +6,18 @@ import { ref, computed } from 'vue'
 const props = defineProps({
   kegiatans: Object,
   filters: Object,
+  namaGuru: { type: String, default: null },
 })
 
 const bulan = ref(props.filters?.bulan ?? new Date().getMonth() + 1)
 const tahun = ref(props.filters?.tahun ?? new Date().getFullYear())
 const selectedItem = ref(props.kegiatans?.data?.[0] ?? null)
+
+import { watch } from 'vue'
+
+watch(() => props.kegiatans, (newVal) => {
+  selectedItem.value = newVal?.data?.[0] ?? null
+})
 
 const warnaTitik = [
   'bg-orange-400', 'bg-purple-400', 'bg-green-500',
@@ -38,13 +45,11 @@ function kebiasaanList(item) {
 
 function warnaBadgeStatus(status) {
   if (status === 'submitted' || status === 'evaluated') return 'bg-green-100 text-green-700'
-  if (status === 'draft') return 'bg-gray-100 text-gray-500'
   return 'bg-red-100 text-red-600'
 }
 
 function labelStatus(status) {
   if (status === 'submitted' || status === 'evaluated') return 'Terkirim'
-  if (status === 'draft') return 'Draft'
   return status
 }
 
@@ -207,10 +212,10 @@ const selectedKepatuhan = computed(() => {
             <div v-else>
               <div class="flex items-center gap-2 mb-3">
                 <div class="w-8 h-8 rounded-full bg-[#1B7F5A] flex items-center justify-center text-white text-xs font-bold">
-                  G
+                  {{ namaGuru ? namaGuru[0] : 'G' }}
                 </div>
                 <div>
-                  <p class="text-xs font-bold text-[#1B7F5A]">Wali Kelas</p>
+                  <p class="text-xs font-bold text-[#1B7F5A]">{{ namaGuru ?? 'Wali Kelas' }}</p>
                   <p class="text-xs text-gray-400">{{ formatTanggal(selectedItem.tanggal) }}</p>
                 </div>
               </div>
