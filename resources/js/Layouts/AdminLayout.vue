@@ -53,6 +53,16 @@ const toggleSidebar = () => {
                 </Link>
 
                 <Link
+                    href="/admin/classes"
+                    :class="[
+                        'flex items-center px-4 py-3 rounded-xl transition text-sm',
+                        page.url.startsWith('/admin/classes')
+                            ? 'bg-white/15 font-semibold'
+                            : 'text-white hover:bg-white/10'
+                    ]">Kelola Kelas
+                </Link>
+
+                <Link
                     href="/admin/users"
                     :class="[
                         'flex items-center px-4 py-3 rounded-xl transition text-sm',

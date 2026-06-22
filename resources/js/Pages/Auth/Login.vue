@@ -1,8 +1,6 @@
 <script setup>
 import Checkbox from '@/Components/Checkbox.vue';
-import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
@@ -32,10 +30,8 @@ const submit = () => {
     <Head title="Login" />
     <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0F3D2E] via-[#1B7F5A] to-[#A8D5C2] px-6 py-12">
         <div class="w-full max-w-sm">
-
             <!-- CARD LOGIN -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-
                 <!-- LOGO + JUDUL SEJAJAR KIRI -->
                 <div class="flex items-center gap-4 mb-6">
                     <img
@@ -56,6 +52,14 @@ const submit = () => {
                 </div>
 
                 <form @submit.prevent="submit" class="space-y-4">
+                    <!-- PESAN ERROR (email/password) -->
+                    <div
+                        v-if="form.errors.email || form.errors.password"
+                        class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm"
+                    >
+                        {{ form.errors.email || form.errors.password }}
+                    </div>
+
                     <div>
                         <InputLabel
                             for="email"
@@ -67,9 +71,7 @@ const submit = () => {
                             v-model="form.email"
                             placeholder="nama@email.com"
                             required
-                            autofocus
                             autocomplete="username" />
-                        <InputError class="mt-2" :message="form.errors.email" />
                     </div>
 
                     <div>
@@ -84,7 +86,6 @@ const submit = () => {
                             placeholder="Masukkan password"
                             required
                             autocomplete="current-password" />
-                        <InputError class="mt-2" :message="form.errors.password" />
                     </div>
 
                     <div class="flex items-center justify-between">
@@ -96,13 +97,6 @@ const submit = () => {
                                 Ingat Saya
                             </span>
                         </label>
-
-                        <Link
-                            v-if="canResetPassword"
-                            :href="route('password.request')"
-                            class="text-sm font-medium text-[#1B7F5A] hover:underline">
-                            Lupa password?
-                        </Link>
                     </div>
 
                     <button
@@ -114,7 +108,6 @@ const submit = () => {
                     </button>
                 </form>
             </div>
-
             <p class="text-center text-xs text-white/70 mt-6">
                 &copy; {{ new Date().getFullYear() }} 7 Kebiasaan Anak Indonesia Hebat
             </p>
