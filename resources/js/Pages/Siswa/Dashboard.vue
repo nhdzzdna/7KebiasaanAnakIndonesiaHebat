@@ -1,277 +1,255 @@
 <script setup>
-import GuruLayout from '@/Layouts/GuruLayout.vue'
+import SiswaLayout from '@/Layouts/SiswaLayout.vue'
 
-// ====================================================================
-// PROPS — struktur ini DIAMBIL PERSIS dari dokumentasi API Nahdia
-// untuk endpoint GET /guru/dashboard (Inertia::render('Guru/Dashboard', ...)).
-// Nama field di sini HARUS sama persis dengan yang dikirim controller,
-// termasuk huruf besar/kecil dan snake_case/camelCase-nya — Inertia tidak
-// akan otomatis menyesuaikan kalau ada typo nama field.
-// ====================================================================
 const props = defineProps({
-    stats: {
-        type: Object,
-        required: true,
-        // shape: { total_students, today_reports, average_compliance,
-        //          pending_evaluations, submission_rate }
-    },
-    topPerformers: { type: Array, default: () => [] },     // top 5 by compliance_percentage tertinggi
-    needAttention: { type: Array, default: () => [] },     // siswa compliance < 60%
-    notSubmitted: { type: Array, default: () => [] },      // siswa belum lapor hari ini
-    latestEvaluations: { type: Array, default: () => [] }, // 5 evaluasi terakhir guru
-    topActive: { type: Array, default: () => [] },         // top 5 by JUMLAH HARI SUBMIT (beda dari topPerformers)
-    classWeeklyProgress: { type: Array, default: () => [] }, // 7 elemen: { field, label, persentase }
-    classMonthlyChart: { type: Array, default: () => [] },   // 30 elemen: { tanggal, rata_rata_kepatuhan }
+    stats: { type: Object, required: true },
+    todayReport: { type: Object, default: null },
+    todayStatus: { type: String, required: true },
+    isTodaySubmitted: { type: Boolean, required: true },
+    isTodayEvaluated: { type: Boolean, required: true },
+    todayCompliance: { type: Number, required: true },
+    profileWarning: { type: Boolean, required: true },
+    latestEvaluation: { type: Object, default: null },
+    latestFeedback: { type: String, default: null },
+    namaWaliKelas: { type: String, default: null },
+    recentReports: { type: Array, default: () => [] },
+    weeklyChart: { type: Array, default: () => [] },
 })
 
-// Helper kecil: format tanggal "2026-05-22" jadi "22 Mei" biar enak dibaca,
-// dipakai di sumbu grafik 30 hari. Pure function, tidak butuh data luar.
-function formatTanggalPendek(tanggalISO) {
-    const bulanSingkat = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
-    const [, bulan, hari] = tanggalISO.split('-')
-    return `${parseInt(hari)} ${bulanSingkat[parseInt(bulan) - 1]}`
+// DAFTAR 7 KEBIASAAN, DIPAKAI UNTUK BACA FIELD DARI todayReport SECARA DINAMIS
+const daftarKebiasaan = [
+    { field: 'waktu_bangun', icon: '🌅', nama: 'Bangun Pagi' },
+    { field: 'detail_ibadah_centang', icon: '🕌', nama: 'Ibadah & Doa' },
+    { field: 'menu_makan', icon: '🥗', nama: 'Makan Sehat & Bergizi' },
+    { field: 'jenis_olahraga', icon: '🏃', nama: 'Olahraga' },
+    { field: 'belajar_mandiri', icon: '📚', nama: 'Belajar Mandiri' },
+    { field: 'aktivitas_sosial', icon: '🤝', nama: 'Aktivitas Sosial' },
+    { field: 'waktu_tidur', icon: '😴', nama: 'Tidur Cepat' },
+]
+
+// CEK APAKAH SUATU FIELD KEBIASAAN SUDAH TERISI DI todayReport
+function sudahTerisi(field) {
+    if (!props.todayReport) return false
+    const nilai = props.todayReport[field]
+    return !(nilai === null || nilai === undefined || nilai === '' || (Array.isArray(nilai) && nilai.length === 0))
 }
 
-// Cari nilai tertinggi di classMonthlyChart, dipakai untuk highlight bar
-// puncak aktivitas (gantinya highlightIndexes manual yang dulu saya hardcode).
-const puncakAktivitas = props.classMonthlyChart.length
-    ? Math.max(...props.classMonthlyChart.map((d) => d.rata_rata_kepatuhan))
-    : 0
+// AMBIL TEKS RINGKASAN UNTUK DITAMPILKAN DI BAWAH NAMA KEBIASAAN
+function ringkasanField(field) {
+    if (!props.todayReport) return 'Belum dicatat'
+    const nilai = props.todayReport[field]
+    if (!sudahTerisi(field)) return 'Belum dicatat'
+    if (Array.isArray(nilai)) return nilai.join(', ') + ' ✓'
+    return nilai + ' ✓'
+}
+
+// LABEL BADGE NILAI: "A — Sangat Baik", "B — Baik", dst
+const labelNilai = {
+    A: 'Sangat Baik',
+    B: 'Baik',
+    C: 'Cukup',
+    D: 'Perlu Bimbingan',
+}
+
+// TANGGAL HARI INI, FORMAT INDONESIA
+const hariIniFormatted = new Date().toLocaleDateString('id-ID', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+})
+
+// WARNA BAR PER HARI DI GRAFIK MINGGU INI: HIJAU JIKA >=80%, ORANGE JIKA ADA DATA TAPI DI BAWAH 80%, ABU JIKA BELUM ADA DATA
+function warnaBarMingguan(hari) {
+    if (hari.compliance === 0) return null // ditangani terpisah di template (tampil "—")
+    if (hari.compliance >= 80) return 'bg-[#1B7F5A]'
+    return 'bg-orange-400'
+}
 </script>
 
 <template>
+  <SiswaLayout>
+    <div class="space-y-5">
 
-<GuruLayout>
-    <div class="space-y-6">
-        <!-- HEADER -->
-        <div class="flex items-center justify-between flex-wrap gap-3">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-800">
-                    Dashboard Wali Kelas
-                </h1>
-                <p class="text-gray-500 mt-1 text-sm">
-                    Ringkasan aktivitas dan perkembangan siswa
-                </p>
+      <!-- HEADER -->
+      <div class="flex items-start justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-800">Dashboard Siswa</h1>
+          <p class="text-gray-400 text-sm mt-0.5">Pantau kebiasaanmu hari ini, {{ hariIniFormatted }}</p>
+        </div>
+        <button
+          @click="$inertia.visit('/siswa/kegiatan')"
+          class="flex items-center gap-2 bg-[#1B7F5A] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#155f44] transition">
+          <span>📋</span> Catat Kegiatan Hari Ini
+        </button>
+      </div>
+
+      <!-- ALERT PROFIL BELUM LENGKAP -->
+      <div v-if="profileWarning" class="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+        <div class="flex items-start gap-3">
+          <div class="bg-amber-400 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm flex-shrink-0">✏️</div>
+          <div class="flex-1">
+            <h3 class="font-bold text-amber-700 text-sm">Profil Kamu Belum Lengkap!</h3>
+            <p class="text-xs text-amber-600 mt-0.5">Lengkapi data personalmu agar guru bisa mengenalmu dengan baik</p>
+            <div class="mt-3 flex items-center gap-3">
+              <div class="flex-1 bg-amber-200 rounded-full h-2">
+                <div class="bg-amber-500 h-2 rounded-full" :style="{ width: stats.profile_completion + '%' }"></div>
+              </div>
+              <span class="text-xs text-amber-600 whitespace-nowrap">{{ stats.profile_completion }}% lengkap — masih ada beberapa data yang belum diisi</span>
             </div>
+          </div>
+          <button
+            @click="$inertia.visit('/siswa/profile')"
+            class="bg-amber-500 text-white text-xs font-semibold px-4 py-2 rounded-xl whitespace-nowrap hover:bg-amber-600 transition">
+            Lengkapi Sekarang →
+          </button>
+        </div>
+      </div>
 
-            <a
-                :href="route('guru.monitoring.index')"
-                class="bg-[#1B7F5A] hover:bg-[#166347] text-white px-5 py-2.5 rounded-xl font-medium transition flex items-center gap-2 text-sm"
-            >👁 Monitor Kelas
-            </a>
+      <!-- STAT CARDS (4 kolom) -->
+      <div class="grid grid-cols-4 gap-4">
+
+        <div class="bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4">
+          <div class="text-3xl">🔥</div>
+          <div>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.streak }}</p>
+            <p class="text-xs text-gray-500 font-medium">Streak Hari Ini</p>
+            <p class="text-xs text-gray-400">Terus pertahankan!</p>
+          </div>
         </div>
 
-        <!-- KONDISI: GURU BELUM PUNYA KELAS — sesuai dokumentasi API,
-             kalau guru belum ditugaskan ke kelas manapun semua array kosong
-             dan semua angka stats = 0, bukan error. Tampilkan pesan ramah. -->
-        <div
-            v-if="stats.total_students === 0"
-            class="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
-            <p class="text-gray-400 text-sm">
-                Anda belum ditugaskan sebagai wali kelas manapun. Hubungi admin untuk penugasan kelas.
-            </p>
+        <div class="bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4">
+          <div class="text-3xl">📊</div>
+          <div>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.average_compliance }}%</p>
+            <p class="text-xs text-gray-500 font-medium">Kepatuhan Bulan Ini</p>
+          </div>
         </div>
 
-        <template v-else>
+        <div class="bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4">
+          <div class="text-3xl">✅</div>
+          <div>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.habits_filled_today }}/{{ stats.habits_total }}</p>
+            <p class="text-xs text-gray-500 font-medium">Kebiasaan Hari Ini</p>
+            <p class="text-xs text-gray-400">{{ stats.habits_total - stats.habits_filled_today }} belum dicatat</p>
+          </div>
+        </div>
 
-            <!-- 5 KARTU STATISTIK -->
-            <div class="grid md:grid-cols-5 gap-4">
+        <div class="bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4">
+          <div class="text-3xl">🏆</div>
+          <div>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.total_reports }}</p>
+            <p class="text-xs text-gray-500 font-medium">Total Hari Tercatat</p>
+          </div>
+        </div>
 
-                <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                    <p class="text-gray-500 text-sm">Total Siswa</p>
-                    <h2 class="text-2xl font-bold text-gray-800 mt-2">{{ stats.total_students }}</h2>
-                </div>
+      </div>
 
-                <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                    <p class="text-gray-500 text-sm">Lapor Hari Ini</p>
-                    <h2 class="text-2xl font-bold text-blue-600 mt-2">{{ stats.today_reports }}</h2>
-                </div>
+      <!-- KONTEN UTAMA: 2 KOLOM -->
+      <div class="grid grid-cols-3 gap-5">
 
-                <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                    <p class="text-gray-500 text-sm">Rata-rata Kepatuhan</p>
-                    <h2 class="text-2xl font-bold text-[#1B7F5A] mt-2">{{ stats.average_compliance }}%</h2>
-                </div>
+        <!-- KIRI: KEBIASAAN HARI INI (2/3 lebar) -->
+        <div class="col-span-2 bg-white rounded-2xl p-6 shadow-sm">
 
-                <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                    <p class="text-gray-500 text-sm">Menunggu Evaluasi</p>
-                    <h2 class="text-2xl font-bold text-orange-500 mt-2">{{ stats.pending_evaluations }}</h2>
-                </div>
-
-                <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                    <p class="text-gray-500 text-sm">Tingkat Pelaporan</p>
-                    <h2 class="text-2xl font-bold text-blue-500 mt-2">{{ stats.submission_rate }}%</h2>
-                </div>
-
+          <div class="flex items-center justify-between mb-5">
+            <div class="flex items-center gap-2">
+              <span class="text-red-500">🗓️</span>
+              <h3 class="font-bold text-gray-800">Kebiasaan Hari Ini — {{ hariIniFormatted }}</h3>
             </div>
+            <button
+              v-if="!isTodaySubmitted"
+              @click="$inertia.visit('/siswa/kegiatan')"
+              class="flex items-center gap-1 bg-[#1B7F5A] text-white text-xs font-semibold px-3 py-2 rounded-xl hover:bg-[#155f44] transition">
+              + Catat Sekarang
+            </button>
+          </div>
 
-            <!-- BANNER: SISWA BELUM LAPOR HARI INI -->
+          <div class="space-y-3">
             <div
-                v-if="notSubmitted.length > 0"
-                class="bg-[#0F3D2E] text-white rounded-2xl px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
-                <div class="flex items-center gap-3">
-                    <span class="text-xl">🔔</span>
-                    <div>
-                        <p class="font-semibold text-sm">{{ notSubmitted.length }} Siswa Belum Lapor Hari Ini</p>
-                        <p class="text-green-200 text-xs mt-0.5">
-                            {{ notSubmitted.slice(0, 3).map(s => s.name ?? s.nama).join(', ') }}
-                            <span v-if="notSubmitted.length > 3"> dan {{ notSubmitted.length - 3 }} lainnya</span>
-                        </p>
-                    </div>
+              v-for="(k, i) in daftarKebiasaan"
+              :key="k.field"
+              class="flex items-center justify-between py-3"
+              :class="i < daftarKebiasaan.length - 1 ? 'border-b border-gray-100' : ''">
+              <div class="flex items-center gap-3">
+                <span class="text-xl">{{ k.icon }}</span>
+                <div>
+                  <p class="text-sm font-semibold text-gray-800">{{ i + 1 }}. {{ k.nama }}</p>
+                  <p class="text-xs text-gray-400">{{ ringkasanField(k.field) }}</p>
                 </div>
+              </div>
+              <div
+                class="w-6 h-6 rounded-md border-2 flex items-center justify-center text-white text-xs"
+                :class="sudahTerisi(k.field) ? 'border-[#1B7F5A] bg-[#1B7F5A]' : 'border-gray-300'">
+                <span v-if="sudahTerisi(k.field)">✓</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-                <a
-                    :href="route('guru.monitoring.index')"
-                    class="text-sm font-medium bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition shrink-0"
-                >Lihat Detail →
-                </a>
+        <!-- KANAN: CATATAN GURU + MINGGU INI (1/3 lebar) -->
+        <div class="col-span-1 space-y-4">
+
+          <!-- Catatan Guru -->
+          <div class="bg-white rounded-2xl p-5 shadow-sm">
+            <div class="flex items-center gap-2 mb-4">
+              <span class="text-gray-500">💬</span>
+              <h3 class="font-bold text-gray-800 text-sm">Catatan Terbaru dari Guru</h3>
             </div>
 
-            <!-- MAIN GRID -->
-            <div class="grid lg:grid-cols-3 gap-6">
-
-                <!-- PROGRES KEBIASAAN KELAS - MINGGU INI -->
-                <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-
-                    <h3 class="text-lg font-bold text-gray-800 mb-6">
-                        Progres Kebiasaan Kelas — Minggu Ini
-                    </h3>
-
-                    <div v-if="classWeeklyProgress.length === 0" class="text-sm text-gray-400 text-center py-6">
-                        Belum ada data kebiasaan minggu ini
-                    </div>
-
-                    <div v-else class="space-y-5">
-                        <div v-for="habit in classWeeklyProgress" :key="habit.field">
-                            <div class="flex justify-between mb-2">
-                                <span class="font-medium text-gray-700 text-sm">{{ habit.label }}</span>
-                                <span class="font-semibold text-gray-600 text-sm">{{ habit.persentase }}%</span>
-                            </div>
-                            <div class="w-full h-2.5 rounded-full bg-gray-100">
-                                <div
-                                    class="h-2.5 rounded-full bg-[#1B7F5A]"
-                                    :style="{ width: habit.persentase + '%' }"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- SISWA TERAKTIF (topActive: by JUMLAH HARI SUBMIT) -->
-                <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-
-                    <h3 class="text-lg font-bold text-gray-800 mb-1">
-                        Siswa Teraktif
-                    </h3>
-                    <p class="text-xs text-gray-400 mb-5">Berdasarkan jumlah hari melapor</p>
-
-                    <div v-if="topActive.length === 0" class="text-sm text-gray-400 text-center py-6">
-                        Belum ada data
-                    </div>
-
-                    <div v-else class="space-y-4">
-                        <div
-                            v-for="(student, index) in topActive"
-                            :key="student.id ?? index"
-                            class="flex items-center gap-3">
-                            <span class="w-5 text-sm font-semibold text-gray-400">{{ index + 1 }}</span>
-
-                            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center font-semibold text-green-700 text-xs shrink-0">
-                                {{ (student.name ?? student.nama)[0] }}
-                            </div>
-
-                            <div class="flex-1 min-w-0">
-                                <p class="font-medium text-gray-700 text-sm truncate">{{ student.name ?? student.nama }}</p>
-                            </div>
-
-                            <span class="text-sm font-bold text-[#1B7F5A] shrink-0">
-                                {{ student.total_hari_lapor ?? student.jumlah_hari ?? '-' }} hari
-                            </span>
-                        </div>
-                    </div>
-                </div>
+            <div v-if="!latestEvaluation" class="text-xs text-gray-400 text-center py-4">
+              Belum ada catatan dari guru
             </div>
 
-            <!-- 2 KOLOM: PERLU PERHATIAN + EVALUASI TERBARU -->
-            <div class="grid lg:grid-cols-2 gap-6">
-
-                <!-- PERLU PERHATIAN (compliance < 60%) -->
-                <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                    <h3 class="text-lg font-bold text-gray-800 mb-1">Perlu Perhatian</h3>
-                    <p class="text-xs text-gray-400 mb-5">Siswa dengan kepatuhan di bawah 60%</p>
-
-                    <div v-if="needAttention.length === 0" class="text-sm text-gray-400 text-center py-6">
-                        Tidak ada siswa yang perlu perhatian khusus saat ini 🎉
-                    </div>
-
-                    <div v-else class="space-y-3">
-                        <div
-                            v-for="(student, index) in needAttention"
-                            :key="student.id ?? index"
-                            class="flex items-center justify-between border border-red-100 bg-red-50/50 rounded-xl px-4 py-3">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-semibold text-xs shrink-0">
-                                    {{ (student.name ?? student.nama)[0] }}
-                                </div>
-                                <p class="font-medium text-gray-700 text-sm">{{ student.name ?? student.nama }}</p>
-                            </div>
-                            <span class="text-sm font-bold text-red-500">
-                                {{ student.compliance_percentage ?? student.compliance ?? 0 }}%
-                            </span>
-                        </div>
-                    </div>
+            <div v-else class="border border-gray-100 rounded-xl p-4">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 rounded-full bg-[#1B7F5A] flex items-center justify-center text-white text-xs font-bold">
+                    {{ namaWaliKelas ? namaWaliKelas[0] : '-' }}
                 </div>
-
-                <!-- EVALUASI TERBARU -->
-                <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                    <h3 class="text-lg font-bold text-gray-800 mb-5">Evaluasi Terbaru</h3>
-
-                    <div v-if="latestEvaluations.length === 0" class="text-sm text-gray-400 text-center py-6">
-                        Belum ada evaluasi yang diberikan
-                    </div>
-
-                    <div v-else class="space-y-3">
-                        <div
-                            v-for="(item, index) in latestEvaluations"
-                            :key="item.id ?? index"
-                            class="flex items-start justify-between border-b border-gray-50 last:border-0 pb-3 last:pb-0">
-                            <div>
-                                <p class="font-medium text-gray-700 text-sm">{{ item.nama ?? item.student_name }}</p>
-                                <p class="text-xs text-gray-400 mt-0.5 line-clamp-1">{{ item.catatan_guru ?? '-' }}</p>
-                            </div>
-                            <span class="text-xs font-bold px-2 py-1 rounded-full bg-green-100 text-green-700 shrink-0">
-                                {{ item.nilai_guru }}
-                            </span>
-                        </div>
-                    </div>
+                <div>
+                    <p class="text-xs font-bold text-[#1B7F5A]">{{ namaWaliKelas ?? 'Wali Kelas' }}</p>
+                    <p class="text-xs text-gray-400">{{ latestEvaluation.tanggal }}</p>
                 </div>
+              </div>
+              <p v-if="latestFeedback" class="text-xs text-gray-600 italic leading-relaxed">
+                "{{ latestFeedback }}"
+              </p>
+              <div class="mt-3">
+                <span class="inline-flex items-center gap-1 bg-[#1B7F5A] text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
+                  Nilai: {{ latestEvaluation.nilai_guru }} — {{ labelNilai[latestEvaluation.nilai_guru] ?? '-' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Minggu Ini -->
+          <div class="bg-white rounded-2xl p-5 shadow-sm">
+            <div class="flex items-center gap-2 mb-4">
+              <span>📊</span>
+              <h3 class="font-bold text-gray-800 text-sm">Minggu Ini</h3>
             </div>
 
-            <!-- GRAFIK 30 HARI TERAKHIR -->
-            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-
-                <h3 class="text-lg font-bold text-gray-800 mb-1">
-                    Profil Kegiatan Kelas — 30 Hari Terakhir
-                </h3>
-                <p class="text-gray-400 text-xs mb-5">
-                    Rata-rata kepatuhan kelas per hari
-                </p>
-
-                <div v-if="classMonthlyChart.length === 0" class="text-sm text-gray-400 text-center py-10">
-                    Belum ada data aktivitas
+            <div class="space-y-3">
+              <div
+                v-for="hari in weeklyChart"
+                :key="hari.tanggal"
+                class="flex items-center gap-3">
+                <span class="text-xs text-gray-500 w-6">{{ hari.hari }}</span>
+                <div class="flex-1 bg-gray-100 rounded-full h-3">
+                  <div
+                    v-if="hari.compliance > 0"
+                    class="h-3 rounded-full"
+                    :class="warnaBarMingguan(hari)"
+                    :style="{ width: hari.compliance + '%' }"
+                  ></div>
                 </div>
-
-                <div v-else class="flex items-end justify-between gap-1 h-40">
-                    <div
-                        v-for="(day, i) in classMonthlyChart"
-                        :key="i"
-                        class="flex-1 rounded-t transition"
-                        :class="day.rata_rata_kepatuhan === puncakAktivitas ? 'bg-[#F59E0B]' : 'bg-[#1B7F5A]'"
-                        :style="{ height: day.rata_rata_kepatuhan + '%' }"
-                        :title="`${formatTanggalPendek(day.tanggal)}: ${day.rata_rata_kepatuhan}%`"
-                    />
-                </div>
+                <span class="text-xs w-8 text-right" :class="hari.compliance > 0 ? 'text-gray-500' : 'text-gray-400'">
+                  {{ hari.compliance > 0 ? hari.compliance + '%' : '—' }}
+                </span>
+              </div>
             </div>
-        </template>
+          </div>
+
+        </div>
+
+      </div>
+
     </div>
-</GuruLayout>
+  </SiswaLayout>
 </template>

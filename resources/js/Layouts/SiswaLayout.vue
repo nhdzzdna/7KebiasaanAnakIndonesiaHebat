@@ -1,12 +1,29 @@
 <script setup>
 import { Link, usePage } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const page = usePage()
 const sidebarOpen = ref(true)
 const toggleSidebar = () => {
   sidebarOpen.value = !sidebarOpen.value
 }
+
+const user = computed(() => page.props.auth?.user ?? null)
+const studentProfile = computed(() => page.props.auth?.studentProfile ?? null)
+
+const namaKelas = computed(() =>
+  studentProfile.value?.school_class?.name ?? '-'
+)
+
+const persenProfil = computed(() =>
+  studentProfile.value?.profile_completion ?? 0
+)
+
+const fotoUrl = computed(() =>
+  user.value?.foto
+    ? `/storage/${user.value.foto}`
+    : 'https://i.pinimg.com/originals/22/02/f1/2202f1513fa534d5e3698ae8619d9474.jpg?nii=t'
+)
 </script>
 
 <template>
@@ -32,20 +49,20 @@ const toggleSidebar = () => {
         <!-- Foto profil bulat -->
         <div class="w-14 h-14 rounded-full overflow-hidden bg-white/20 mb-3">
           <img
-            src="https://i.pravatar.cc/56"
+            :src="fotoUrl"
             alt="Foto Profil"
             class="w-full h-full object-cover"/>
         </div>
 
-        <h2 class="font-bold text-base leading-tight">Budi Santoso</h2>
-        <p class="text-green-200 text-xs mt-0.5">Siswa • Kelas 7A</p>
+        <h2 class="font-bold text-base leading-tight">{{ user?.name }}</h2>
+        <p class="text-green-200 text-xs mt-0.5">Siswa • Kelas {{ namaKelas }}</p>
         <div class="mt-3">
           <div class="flex justify-between text-xs text-green-200 mb-1">
             <span>Kelengkapan Profil</span>
-            <span>60%</span>
+            <span>{{ persenProfil }}%</span>
           </div>
           <div class="h-1.5 rounded-full bg-white/10 overflow-hidden">
-            <div class="h-full bg-yellow-400 rounded-full" style="width: 60%"></div>
+            <div class="h-full bg-yellow-400 rounded-full" :style="{ width: persenProfil + '%' }"></div>
           </div>
         </div>
       </div>
@@ -126,11 +143,11 @@ const toggleSidebar = () => {
         </div>
 
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-full overflow-hidden bg-gray-200">
+          <div class="w-9 h-9 rounded-full overflow-hidden bg-gray-200 cursor-pointer">
             <img
               @click="$inertia.visit('/siswa/profile')"
-              src="https://i.pravatar.cc/36"
-              alt="Avatar"
+              :src="fotoUrl"
+              alt="Avatar" 
               class="w-full h-full object-cover"/>
           </div>
         </div>

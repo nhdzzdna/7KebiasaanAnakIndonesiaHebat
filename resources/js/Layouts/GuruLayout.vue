@@ -30,7 +30,7 @@ const toggleSidebar = () => {
         <div class="p-5 border-b border-white/10">
             <div class="w-14 h-14 rounded-full overflow-hidden bg-white/20 mb-3">
                 <img
-                    src="https://i.pravatar.cc/56"
+                    src="https://i.pinimg.com/originals/22/02/f1/2202f1513fa534d5e3698ae8619d9474.jpg?nii=t"
                     class="w-full h-full object-cover"/>
             </div>
 
@@ -124,7 +124,7 @@ const toggleSidebar = () => {
                 <div class="w-9 h-9 rounded-full overflow-hidden bg-gray-200">
                     <img
                         @click="$inertia.visit('/guru/profile')"
-                        src="https://i.pravatar.cc/36"
+                        src="https://i.pinimg.com/originals/22/02/f1/2202f1513fa534d5e3698ae8619d9474.jpg?nii=t"
                         class="w-full h-full object-cover"/>
                 </div>
             </div>

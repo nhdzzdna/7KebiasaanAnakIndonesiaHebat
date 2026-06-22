@@ -17,9 +17,9 @@ class StudentProfileController extends Controller
     public function index()
     {
         $profile = StudentProfile::with([
-            'schoolClass',
-            'user'
-        ])
+                    'schoolClass.teacher',
+                    'user'
+                ])
 
             ->firstOrCreate(
                 ['user_id' => Auth::user()->id]
