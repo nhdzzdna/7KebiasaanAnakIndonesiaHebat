@@ -1,1 +1,0 @@
-import{b as a,o as n}from"./app-temTMZcy.js";const s=(o,t)=>{const e=o.__vccOpts||o;for(const[r,c]of t)e[r]=c;return e},_={};function f(o,t){return n(),a("h1",null,"Dashboard Lama")}const d=s(_,[["render",f]]);export{d as default};
