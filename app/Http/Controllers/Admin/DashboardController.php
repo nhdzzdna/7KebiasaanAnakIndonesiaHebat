@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Kegiatan;
 use App\Models\SchoolClass;
 use App\Models\User;
+use App\Models\DataCorrection;
 
 use Inertia\Inertia;
 

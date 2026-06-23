@@ -72,7 +72,7 @@ class SchoolClassController extends Controller
         ]);
 
         return Inertia::render(
-            'Admin/SchoolClasses/Index',
+            'Admin/Classes/Index',
             [
 
                 'classes' =>
@@ -97,9 +97,9 @@ class SchoolClassController extends Controller
             'name' =>
                 'required|string|max:255|unique:school_classes,name',
 
-            'teacher_id' =>
+            'teacher_id' => 
                 'nullable|exists:users,id',
-
+                
             'school_year' =>
                 'required|string|max:255',
         ]);
@@ -138,22 +138,7 @@ class SchoolClassController extends Controller
 
         $class = SchoolClass::create($validated);
 
-        // SYNC TEACHER PROFILE
-        if (!empty($validated['teacher_id'])) {
-
-            TeacherProfile::updateOrCreate(
-                [
-                    'user_id' =>
-                        $validated['teacher_id']
-                ],
-                [
-                    'school_class_id' =>
-                        $class->id
-                ]
-            );
-        }
-
-        return redirect()->back();
+        return redirect()->route('admin.classes.index');
     }
 
     /*
@@ -251,7 +236,7 @@ class SchoolClassController extends Controller
             );
         }
 
-        return redirect()->back();
+        return redirect()->route('admin.classes.index');
     }
 
     /*
@@ -285,6 +270,6 @@ class SchoolClassController extends Controller
 
         $schoolClass->delete();
 
-        return redirect()->back();
+        return redirect()->route('admin.classes.index');
     }
 }
