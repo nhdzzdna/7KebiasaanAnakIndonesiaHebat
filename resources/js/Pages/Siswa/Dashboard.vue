@@ -110,7 +110,7 @@ function warnaBarMingguan(hari) {
           <div class="text-3xl">🔥</div>
           <div>
             <p class="text-2xl font-bold text-gray-800">{{ stats.streak }}</p>
-            <p class="text-xs text-gray-500 font-medium">Streak Hari Ini</p>
+            <p class="text-xs text-gray-500 font-medium">Hari Beruntun</p>
             <p class="text-xs text-gray-400">Terus pertahankan!</p>
           </div>
         </div>

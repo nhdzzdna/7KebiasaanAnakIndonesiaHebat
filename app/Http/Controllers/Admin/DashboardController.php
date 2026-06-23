@@ -70,7 +70,12 @@ class DashboardController extends Controller
         // RATA-RATA COMPLIANCE
         $averageCompliance = round(
 
-            Kegiatan::avg(
+            Kegiatan::whereIn('status', [
+                'submitted',
+                'evaluated'
+            ])
+
+            ->avg(
                 'compliance_percentage'
             )
 

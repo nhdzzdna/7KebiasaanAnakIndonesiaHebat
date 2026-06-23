@@ -240,6 +240,19 @@ class MonitoringController extends Controller
     {
         $tanggal = $request->input('tanggal', now()->toDateString());
 
+        // TOTAL SISWA (semua siswa, atau yang di kelas terpilih kalau difilter)
+        $totalSiswaQuery = \App\Models\StudentProfile::query();
+
+        if ($request->filled('school_class_id')) {
+
+            $totalSiswaQuery->where(
+                'school_class_id',
+                $request->school_class_id
+            );
+        }
+
+        $totalSiswaKeseluruhan = $totalSiswaQuery->count();
+
         $query = Kegiatan::with([
             'user.studentProfile.schoolClass'
         ])
@@ -279,7 +292,7 @@ class MonitoringController extends Controller
         ];
 
         $perKebiasaan = collect($habitFields)
-            ->map(function ($label, $field) use ($kegiatans) {
+            ->map(function ($label, $field) use ($kegiatans, $totalSiswaKeseluruhan) {
 
                 $siswaList = $kegiatans->map(function ($k) use ($field) {
 
@@ -301,19 +314,12 @@ class MonitoringController extends Controller
 
                 return [
                     'field' => $field,
-
                     'label' => $label,
-
-                    'total_terisi' => $siswaList
-                        ->where('terisi', true)
-                        ->count(),
-
-                    'total_siswa' => $siswaList->count(),
-
+                    'total_terisi' => $siswaList->where('terisi', true)->count(),
+                    'total_siswa' => $totalSiswaKeseluruhan,
                     'siswa' => $siswaList,
                 ];
             })
-
             ->values();
 
         $classes = SchoolClass::get([

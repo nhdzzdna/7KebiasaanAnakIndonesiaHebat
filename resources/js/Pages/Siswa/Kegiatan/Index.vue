@@ -98,6 +98,21 @@ function lanjutKeSelfie() {
         </div>
       </div>
 
+      <!-- ===== KONDISI: AGAMA BELUM DIISI — BLOKIR SEMUA KEGIATAN ===== -->
+      <div v-if="!religion" class="bg-amber-50 border border-amber-200 rounded-2xl p-10 text-center">
+        <div class="text-4xl mb-3">🙏</div>
+        <h4 class="font-bold text-gray-800 text-base mb-1">Lengkapi Data Agama Dulu</h4>
+        <p class="text-sm text-gray-500 mb-5">
+          Untuk mengisi kegiatan Ibadah & Doa, kamu perlu mengisi agama di halaman Profil terlebih dahulu.
+        </p>
+        <Link href="/siswa/profile" class="inline-block bg-[#1B7F5A] hover:bg-[#155f44] text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition">
+          Lengkapi Profil →
+        </Link>
+      </div>
+
+      <!-- ===== SEMUA BLOK KEBIASAAN — HANYA TAMPIL KALAU AGAMA SUDAH DIISI ===== -->
+      <template v-else>
+
       <!-- ===== BLOK KEBIASAAN 1: BANGUN PAGI ===== -->
       <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div class="flex items-center gap-3 px-5 py-3 bg-orange-50 border-b border-orange-100">
@@ -142,21 +157,8 @@ function lanjutKeSelfie() {
           <span class="text-lg">🙏</span>
           <span class="font-bold text-gray-800 text-sm">2 Ibadah & Doa</span>
         </div>
-
-        <!-- KONDISI: AGAMA BELUM DIISI -->
-        <div v-if="!religion" class="p-6 text-center">
-          <div class="text-3xl mb-2">🙏</div>
-          <h4 class="font-bold text-gray-700 text-sm mb-1">Lengkapi Data Agama Dulu</h4>
-          <p class="text-xs text-gray-400 mb-4">
-            Untuk mengisi kegiatan Ibadah & Doa, kamu perlu mengisi agama di halaman Profil terlebih dahulu.
-          </p>
-          <Link href="/siswa/profile" class="text-[#1B7F5A] text-sm font-semibold hover:underline">
-            Lengkapi Profil →
-          </Link>
-        </div>
-
-        <!-- KONDISI: AGAMA SUDAH DIISI -->
-        <div v-else class="p-5 space-y-3">
+        
+        <div class="p-5 space-y-3">
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-2">
               {{ religion === 'Islam' ? 'Sholat Wajib' : 'Ibadah Wajib' }}
@@ -379,24 +381,22 @@ function lanjutKeSelfie() {
           </div>
         </div>
       </div>
+      </template>
 
       <!-- ===== TOMBOL AKSI BAWAH ===== -->
+      <!-- ===== TOMBOL AKSI BAWAH ===== -->
       <div class="flex justify-between items-center pb-6">
-        <button
-          @click="simpanDraft"
-          :disabled="form.processing"
+        <button @click="simpanDraft" :disabled="form.processing"
           class="flex items-center gap-2 border border-gray-200 text-gray-600 text-sm px-5 py-2.5 rounded-xl hover:bg-gray-50 transition disabled:opacity-50">
           💾 Simpan Draft
         </button>
-
         <button
           @click="lanjutKeSelfie"
-          :disabled="form.processing"
-          class="flex items-center gap-2 bg-[#1B7F5A] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#155f44] transition disabled:opacity-50">
+          :disabled="form.processing || !religion"
+          class="flex items-center gap-2 bg-[#1B7F5A] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#155f44] transition disabled:opacity-50 disabled:cursor-not-allowed">
           Lanjut → Selfie Validasi
         </button>
       </div>
-
     </div>
   </SiswaLayout>
 </template>

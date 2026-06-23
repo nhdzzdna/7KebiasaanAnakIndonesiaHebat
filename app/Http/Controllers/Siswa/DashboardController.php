@@ -92,6 +92,21 @@ class DashboardController extends Controller
                 $userId
             )
 
+            ->whereMonth(
+                'tanggal',
+                now()->month
+            )
+
+            ->whereYear(
+                'tanggal',
+                now()->year
+            )
+
+            ->whereIn('status', [
+                'submitted',
+                'evaluated'
+            ])
+
             ->avg('compliance_percentage')
 
             ?? 0
