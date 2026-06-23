@@ -152,6 +152,20 @@ class KegiatanController extends Controller
         }
 
         // VALIDASI
+        // Pastikan detail_ibadah_centang selalu array
+        if ($request->has('detail_ibadah_centang') && !is_array($request->detail_ibadah_centang)) {
+            $request->merge(['detail_ibadah_centang' => []]);
+        }
+        if ($request->waktu_bangun) {
+            $request->merge([
+                'waktu_bangun' => substr($request->waktu_bangun, 0, 5)
+            ]);
+        }
+        if ($request->waktu_tidur) {
+            $request->merge([
+                'waktu_tidur' => substr($request->waktu_tidur, 0, 5)
+            ]);
+        }
         $validated = $request->validate([
 
             'waktu_bangun' =>
