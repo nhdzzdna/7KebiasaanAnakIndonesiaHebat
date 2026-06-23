@@ -403,32 +403,24 @@ class KegiatanController extends Controller
                 ],
                 [
                     'waktu_bangun' => $dataFinal['waktu_bangun'],
-
                     'detail_ibadah_centang' => $dataFinal['detail_ibadah_centang'],
-
                     'detail_ibadah_lain' =>
                         $validated['detail_ibadah_lain']
                         ?? $existing?->detail_ibadah_lain,
-
                     'menu_makan' => $dataFinal['menu_makan'],
-
                     'jumlah_air' =>
                         $validated['jumlah_air']
                         ?? $existing?->jumlah_air,
-
                     'jenis_olahraga' => $dataFinal['jenis_olahraga'],
-
                     'durasi_olahraga' =>
                         $validated['durasi_olahraga']
                         ?? $existing?->durasi_olahraga,
-
                     'belajar_mandiri' => $dataFinal['belajar_mandiri'],
-
                     'durasi_belajar' =>
                         $validated['durasi_belajar']
                         ?? $existing?->durasi_belajar,
-
                     'aktivitas_sosial' => $dataFinal['aktivitas_sosial'],
+                    'waktu_tidur' => $dataFinal['waktu_tidur'],
 
                     'waktu_tidur' => $dataFinal['waktu_tidur'],
 
@@ -444,7 +436,6 @@ class KegiatanController extends Controller
                     'keterangan_bangun' =>
                         $validated['keterangan_bangun']
                         ?? $existing?->keterangan_bangun,
-
                     'keterangan_tidur' =>
                         $validated['keterangan_tidur']
                         ?? $existing?->keterangan_tidur,
@@ -529,21 +520,12 @@ class KegiatanController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        $namaGuru = Auth::user()
-            ->studentProfile
-            ?->schoolClass
-            ?->teacher
-            ?->name;
-
         return Inertia::render(
             'Siswa/Riwayat/Index',
             [
 
                 'kegiatans' =>
                     $kegiatans,
-
-                'namaGuru' =>
-                    $namaGuru,
 
                 'filters' => [
 

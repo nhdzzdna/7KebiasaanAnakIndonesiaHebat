@@ -61,6 +61,29 @@ class StudentProfileController extends Controller
 
         $profile->update($validated);
 
+        // HITUNG ULANG PROFILE COMPLETION
+        $fieldsCompletion = [
+            'religion',
+            'hobby',
+            'weight',
+            'blood_type',
+            'favorite_food',
+            'favorite_subject',
+            'favorite_sport',
+            'strength',
+            'weakness',
+        ];
+
+        $filled = collect($fieldsCompletion)
+            ->filter(fn ($field) => !empty($profile->$field))
+            ->count();
+
+        $profile->update([
+            'profile_completion' => round(
+                ($filled / count($fieldsCompletion)) * 100
+            ),
+        ]);
+
         return redirect()->back();
     }
 

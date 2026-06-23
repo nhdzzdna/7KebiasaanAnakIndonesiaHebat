@@ -138,6 +138,21 @@ class SchoolClassController extends Controller
 
         $class = SchoolClass::create($validated);
 
+        // SYNC TEACHER PROFILE
+        if (!empty($validated['teacher_id'])) {
+
+            TeacherProfile::updateOrCreate(
+                [
+                    'user_id' =>
+                        $validated['teacher_id']
+                ],
+                [
+                    'school_class_id' =>
+                        $class->id
+                ]
+            );
+        }
+
         return redirect()->route('admin.classes.index');
     }
 

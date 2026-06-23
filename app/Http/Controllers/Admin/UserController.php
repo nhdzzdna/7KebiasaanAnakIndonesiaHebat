@@ -218,7 +218,7 @@ class UserController extends Controller
             ->with('success', 'Password berhasil direset.');
     }
 
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user)
     {
         if ($user->isAdmin()) {
             $adminCount = User::where('role', 'admin')->count();

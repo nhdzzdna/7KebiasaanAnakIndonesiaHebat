@@ -11,6 +11,8 @@ const props = defineProps({
 
 const bulan = ref(props.filters?.bulan ?? new Date().getMonth() + 1)
 const tahun = ref(props.filters?.tahun ?? new Date().getFullYear())
+const tahunSekarang = new Date().getFullYear()
+const daftarTahun = [tahunSekarang - 2, tahunSekarang - 1, tahunSekarang, tahunSekarang + 1]
 const selectedItem = ref(props.kegiatans?.data?.[0] ?? null)
 
 import { watch } from 'vue'
@@ -66,6 +68,9 @@ const nilaiLabel = { A: 'Sangat Baik', B: 'Baik', C: 'Cukup', D: 'Perlu Bimbinga
 const selectedKebiasaan = computed(() => kebiasaanList(selectedItem.value))
 const selectedKepatuhan = computed(() => {
   if (!selectedItem.value) return 0
+  if (selectedItem.value.compliance_percentage !== undefined && selectedItem.value.compliance_percentage !== null) {
+    return Math.round(selectedItem.value.compliance_percentage)
+  }
   return Math.round(selectedKebiasaan.value.filter(Boolean).length / 7 * 100)
 })
 </script>
@@ -93,8 +98,7 @@ const selectedKepatuhan = computed(() => {
               <option v-for="(n, i) in ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']" :key="i" :value="i+1">{{ n }}</option>
             </select>
             <select v-model="tahun" class="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none">
-              <option>2025</option>
-              <option>2026</option>
+              <option v-for="y in daftarTahun" :key="y" :value="y">{{ y }}</option>
             </select>
             <button @click="terapkanFilter" class="border border-gray-200 text-gray-600 text-sm px-3 py-2 rounded-xl hover:bg-gray-50 transition">
               🔍 Filter
