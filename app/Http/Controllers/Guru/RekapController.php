@@ -29,12 +29,10 @@ class RekapController extends Controller
         $tahun = (int) $request->input('tahun', now()->year);
 
         $query = Kegiatan::with('user.studentProfile.schoolClass')
-
             ->whereMonth('tanggal', $bulan)
-
             ->whereYear('tanggal', $tahun)
-
-            ->whereIn('status', ['submitted', 'evaluated']);
+            ->whereIn('status', ['submitted', 'evaluated'])
+            ->orderBy('tanggal');
 
         if ($teacherClassId) {
 
@@ -200,6 +198,11 @@ class RekapController extends Controller
             'filters' => [
                 'bulan' => (int) $bulan,
                 'tahun' => (int) $tahun,
+                'kelas' => Auth::user()
+                    ?->teacherProfile
+                    ?->schoolClass
+                    ?->name
+                    ?? '-',
             ],
         ]);
     }
@@ -225,7 +228,9 @@ class RekapController extends Controller
 
             ->whereYear('tanggal', $tahun)
 
-            ->whereIn('status', ['submitted', 'evaluated']);
+            ->whereIn('status', ['submitted', 'evaluated'])
+            
+            ->orderBy('tanggal');
 
         if ($teacherClassId) {
 

@@ -55,14 +55,13 @@ class MonitoringController extends Controller
             );
         }
 
-        // FILTER TANGGAL
-        if ($request->filled('tanggal')) {
+        // FILTER TANGGAL — default ke hari ini, sesuai label kolom "Kebiasaan Hari Ini"
+        $tanggalFilter = $request->input('tanggal', now()->toDateString());
 
-            $query->whereDate(
-                'tanggal',
-                $request->tanggal
-            );
-        }
+        $query->whereDate(
+            'tanggal',
+            $tanggalFilter
+        );
 
         // FILTER NILAI
         if ($request->filled('nilai_guru')) {
@@ -89,27 +88,43 @@ class MonitoringController extends Controller
             );
         }
 
-        // SORT COMPLIANCE
-        $query->orderByDesc(
-            'compliance_percentage'
+        // SORT NAMA SISWA (A-Z) — join ke tabel users karena nama bukan kolom di kegiatans
+        $query->join(
+            'users',
+            'kegiatans.user_id',
+            '=',
+            'users.id'
+        )
+        ->orderBy(
+            'users.name'
+        )
+        ->select(
+            'kegiatans.*'
         );
 
         $kegiatans = $query
             ->paginate(10)
             ->withQueryString();
 
+        // HITUNG STREAK, TOTAL HARI, & GRAFIK MINGGUAN PER BARIS
+        // (cuma untuk siswa di halaman ini, bukan semua siswa di kelas)
+        $kegiatans->getCollection()->transform(function ($k) {
+            $k->streak = $this->hitungStreak($k->user_id);
+            $k->total_hari = $this->hitungTotalHariBulanIni($k->user_id);
+            $k->grafik_minggu = $this->hitungGrafikMinggu($k->user_id);
+            return $k;
+        });
+
         return Inertia::render(
             'Guru/Monitoring/Index',
             [
-
                 'mode' => $mode,
-
                 'kegiatans' => $kegiatans,
 
                 'filters' => [
 
                     'tanggal' =>
-                        $request->tanggal,
+                        $tanggalFilter,
 
                     'nilai_guru' =>
                         $request->nilai_guru,
@@ -130,6 +145,12 @@ class MonitoringController extends Controller
     private function indexPerKebiasaan(Request $request, ?int $teacherClassId)
     {
         $tanggal = $request->input('tanggal', now()->toDateString());
+
+        // TOTAL SISWA DI KELAS (bukan dari jumlah kegiatan yang masuk)
+        $totalSiswaKelas = \App\Models\StudentProfile::where(
+            'school_class_id',
+            $teacherClassId
+        )->count();
 
         $query = Kegiatan::with([
             'user.studentProfile.schoolClass'
@@ -169,7 +190,7 @@ class MonitoringController extends Controller
         ];
 
         $perKebiasaan = collect($habitFields)
-            ->map(function ($label, $field) use ($kegiatans) {
+            ->map(function ($label, $field) use ($kegiatans, $totalSiswaKelas) {
 
                 $siswaList = $kegiatans->map(function ($k) use ($field) {
 
@@ -193,7 +214,7 @@ class MonitoringController extends Controller
                         ->where('terisi', true)
                         ->count(),
 
-                    'total_siswa' => $siswaList->count(),
+                    'total_siswa' => $totalSiswaKelas,
 
                     'siswa' => $siswaList,
                 ];
@@ -260,6 +281,7 @@ class MonitoringController extends Controller
 
         $perTanggal = $kegiatans
             ->groupBy(fn ($k) => $k->tanggal->format('Y-m-d'))
+            ->sortKeys()
             ->map(function ($items, $tanggal) {
 
                 return [
@@ -353,61 +375,10 @@ class MonitoringController extends Controller
             );
 
             // TOTAL HARI TERCATAT BULAN INI
-            $totalHariBulanIni = Kegiatan::where(
-                'user_id',
-                $userId
-            )
-
-            ->whereMonth(
-                'tanggal',
-                now()->month
-            )
-
-            ->whereYear(
-                'tanggal',
-                now()->year
-            )
-
-            ->whereIn('status', [
-                'submitted',
-                'evaluated'
-            ])
-
-            ->count();
+            $totalHariBulanIni = $this->hitungTotalHariBulanIni($userId);
 
             // STREAK (HARI BERTURUT-TURUT TERAKHIR)
-            $streak = 0;
-
-            $tanggalCursor = now()->copy();
-
-            while (true) {
-
-                $ada = Kegiatan::where(
-                    'user_id',
-                    $userId
-                )
-
-                ->whereDate(
-                    'tanggal',
-                    $tanggalCursor->toDateString()
-                )
-
-                ->whereIn('status', [
-                    'submitted',
-                    'evaluated'
-                ])
-
-                ->exists();
-
-                if (!$ada) {
-
-                    break;
-                }
-
-                $streak++;
-
-                $tanggalCursor->subDay();
-            }
+            $streak = $this->hitungStreak($userId);
 
             // GRAFIK PERKEMBANGAN 12 HARI TERAKHIR
             $twelveDaysAgo = now()->subDays(11)->startOfDay();
@@ -546,5 +517,120 @@ class MonitoringController extends Controller
             ]);
 
             return back();
-        }     
+        }    
+        
+        /*
+        |--------------------------------------------------------------------------
+        | HELPER: HITUNG STREAK (dipakai index per_siswa & show)
+        |--------------------------------------------------------------------------
+        */
+        private function hitungStreak(int $userId): int
+        {
+            $streak = 0;
+
+            $tanggalCursor = now()->copy();
+
+            while (true) {
+
+                $ada = Kegiatan::where(
+                    'user_id',
+                    $userId
+                )
+
+                ->whereDate(
+                    'tanggal',
+                    $tanggalCursor->toDateString()
+                )
+
+                ->whereIn('status', [
+                    'submitted',
+                    'evaluated'
+                ])
+
+                ->exists();
+
+                if (!$ada) {
+                    break;
+                }
+
+                $streak++;
+
+                $tanggalCursor->subDay();
+            }
+
+            return $streak;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | HELPER: TOTAL HARI TERCATAT BULAN INI
+        |--------------------------------------------------------------------------
+        */
+        private function hitungTotalHariBulanIni(int $userId): int
+        {
+            return Kegiatan::where(
+                'user_id',
+                $userId
+            )
+
+            ->whereMonth(
+                'tanggal',
+                now()->month
+            )
+
+            ->whereYear(
+                'tanggal',
+                now()->year
+            )
+
+            ->whereIn('status', [
+                'submitted',
+                'evaluated'
+            ])
+
+            ->count();
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | HELPER: GRAFIK 7 HARI TERAKHIR (untuk panel kanan Index)
+        |--------------------------------------------------------------------------
+        */
+        private function hitungGrafikMinggu(int $userId): array
+        {
+            $sevenDaysAgo = now()->subDays(6)->startOfDay();
+
+            $recentKegiatan = Kegiatan::where(
+                'user_id',
+                $userId
+            )
+
+            ->whereBetween('tanggal', [
+                $sevenDaysAgo->toDateString(),
+                now()->toDateString()
+            ])
+
+            ->whereIn('status', [
+                'submitted',
+                'evaluated'
+            ])
+
+            ->get()
+
+            ->keyBy(fn ($k) => $k->tanggal->format('Y-m-d'));
+
+            return collect(range(0, 6))
+                ->map(function ($i) use ($sevenDaysAgo, $recentKegiatan) {
+
+                    $dateKey = $sevenDaysAgo->copy()->addDays($i)->format('Y-m-d');
+
+                    $report = $recentKegiatan->get($dateKey);
+
+                    return $report?->compliance_percentage ?? 0;
+                })
+
+                ->values()
+
+                ->all();
+        }
 }

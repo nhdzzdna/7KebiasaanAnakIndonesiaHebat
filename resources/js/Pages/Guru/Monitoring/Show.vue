@@ -13,16 +13,19 @@ const props = defineProps({
 })
 const k = props.kegiatan
 
-const siswa = computed(() => ({
-    id: k.id,
-    nama: k.user?.name ?? '-',
-    kelas: k.user?.studentProfile?.schoolClass?.name ?? '-',
-    tanggal: k.tanggal,
-    kepatuhanBulanIni: props.siswaSummary.compliance_bulan_ini,
-    streak: props.siswaSummary.streak,
-    totalHari: props.siswaSummary.total_hari_bulan_ini,
-    statusAkun: props.siswaSummary.status_akun,
-}))
+const siswa = computed(() => {
+    const s = props.siswaSummary ?? {}
+    return {
+        id: k.id,
+        nama: k.user?.name ?? '-',
+        kelas: k.user?.studentProfile?.schoolClass?.name ?? '-',
+        tanggal: k.tanggal,
+        kepatuhanBulanIni: s.compliance_bulan_ini ?? 0,
+        streak: s.streak ?? 0,
+        totalHari: s.total_hari_bulan_ini ?? 0,
+        statusAkun: s.status_akun ?? 'aktif',
+    }
+})
 
 // Format tanggal jadi "Selasa, 18 Januari 2026"
 const hariList = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
@@ -34,8 +37,8 @@ const tanggalFormatted = computed(() => {
 })
 
 const grafik12Hari = computed(() => ({
-    labels: props.chart12Hari.map(c => c.tanggal.slice(8, 10)),
-    values: props.chart12Hari.map(c => c.compliance),
+    labels: (props.chart12Hari ?? []).map(c => c.tanggal?.slice(8, 10) ?? ''),
+    values: (props.chart12Hari ?? []).map(c => c.compliance ?? 0),
 }))
 
 // Warna bar grafik 3 tingkat (hijau tua / hijau sage / oranye)
@@ -51,35 +54,33 @@ const sholatList = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya']
 // Background icon kotak per kebiasaan
 const habitColors = ['bg-orange-100', 'bg-pink-100', 'bg-green-100', 'bg-sky-100', 'bg-emerald-100', 'bg-yellow-100', 'bg-amber-100']
 
-// ====================================================================
-// Detail per kebiasaan dipecah jadi field-field spesifik.
-// "foto" per item: kalau backend kirim foto per-kebiasaan
-// (foto_bangun_pagi, foto_olahraga, dst), ganti null di bawah jadi
-// k.foto_<nama_field> ? `/storage/${k.foto_<nama_field>}` : null.
-// Untuk sekarang cuma "Tidur Cepat" yang pasti punya k.bukti_foto.
-// ====================================================================
 const kebiasaan = computed(() => [
     {
         icon: '🌅', nama: 'Bangun Pagi',
         status: !!k.waktu_bangun,
-        foto: null,
-        fields: [{ label: 'Waktu Bangun', value: k.waktu_bangun || null }],
+        foto: k.bukti_foto_bangun ? `/storage/${k.bukti_foto_bangun}` : null,
+        fields: [
+            { label: 'Waktu Bangun', value: k.waktu_bangun || null },
+            { label: 'Keterangan', value: k.keterangan_bangun || null },
+        ],
     },
     {
         icon: '🙏', nama: 'Ibadah & Doa',
-        status: (k.detail_ibadah_centang?.length > 0) || !!k.detail_ibadah_lain,
+        status: (Array.isArray(k.detail_ibadah_centang) && k.detail_ibadah_centang.length > 0) || !!k.detail_ibadah_lain,
         foto: k.bukti_foto_ibadah ? `/storage/${k.bukti_foto_ibadah}` : null,
-        checklist: sholatList.map(s => ({ label: s, checked: (k.detail_ibadah_centang || []).includes(s) })),
+        checklist: sholatList.map(s => ({
+            label: s,
+            checked: Array.isArray(k.detail_ibadah_centang) && k.detail_ibadah_centang.includes(s)
+        })),
         fields: [{ label: 'Lainnya', value: k.detail_ibadah_lain || null }],
     },
     {
         icon: '🥗', nama: 'Makan Sehat & Bergizi',
         status: !!k.menu_makan,
         foto: k.bukti_foto_makan ? `/storage/${k.bukti_foto_makan}` : null,
-        // CATATAN: field jumlah air belum pasti namanya, sesuaikan
         fields: [
             { label: 'Menu Makan', value: k.menu_makan || null },
-            { label: 'Jumlah Air', value: k.jumlah_air_gelas ? `${k.jumlah_air_gelas} gelas` : null },
+            { label: 'Jumlah Air', value: k.jumlah_air ? `${k.jumlah_air} gelas` : null },
         ],
     },
     {
@@ -103,14 +104,17 @@ const kebiasaan = computed(() => [
     {
         icon: '🤝', nama: 'Aktivitas Sosial',
         status: !!k.aktivitas_sosial,
-        foto: null,
+        foto: k.bukti_foto_sosial ? `/storage/${k.bukti_foto_sosial}` : null,
         fields: [{ label: 'Kegiatan', value: k.aktivitas_sosial || null }],
     },
     {
         icon: '😴', nama: 'Tidur Cepat',
         status: !!k.waktu_tidur,
         foto: k.bukti_foto ? `/storage/${k.bukti_foto}` : null,
-        fields: [{ label: 'Waktu Tidur', value: k.waktu_tidur || null }],
+        fields: [
+            { label: 'Waktu Tidur', value: k.waktu_tidur || null },
+            { label: 'Keterangan', value: k.keterangan_tidur || null },
+        ],
     },
 ])
 
@@ -135,6 +139,13 @@ const pilihanNilai = [
     { value: 'D', label: 'D – Perlu Bimbingan' },
 ]
 
+const isLocked = computed(() => k.status === 'draft' || k.status === 'evaluated')
+const lockedMessage = computed(() => {
+    if (k.status === 'draft') return 'Laporan masih draft, belum bisa dievaluasi.'
+    if (k.status === 'evaluated') return 'Laporan ini sudah dievaluasi sebelumnya.'
+    return ''
+})
+
 // Pre-fill kalau laporan ini sudah pernah dievaluasi sebelumnya
 const nilai = ref(k.nilai_guru ?? null)
 const evaluasi = ref(k.catatan_guru ?? '')
@@ -142,12 +153,17 @@ const errorNilai = ref('')
 const savedMessage = ref('')
 
 function simpanEvaluasi() {
+    if (isLocked.value) {
+        errorNilai.value = lockedMessage.value
+        return
+    }
     if (!nilai.value) {
         errorNilai.value = 'Nilai predikat wajib dipilih'
         savedMessage.value = ''
         return
     }
     errorNilai.value = ''
+    savedMessage.value = ''
     // BUG FIX: backend butuh key "nilai_guru" & "catatan_guru" (bukan "nilai"/"catatan")
     router.patch(`/guru/monitoring/${k.id}/evaluasi`, {
         nilai_guru: nilai.value,
@@ -156,8 +172,8 @@ function simpanEvaluasi() {
         onSuccess: () => {
             savedMessage.value = 'Evaluasi berhasil disimpan'
         },
-        onError: () => {
-            errorNilai.value = 'Gagal menyimpan, coba lagi'
+        onError: (errors) => {
+            errorNilai.value = errors.kegiatan ?? errors.nilai_guru ?? 'Gagal menyimpan, coba lagi'
         },
     })
 }
@@ -188,7 +204,8 @@ function simpanEvaluasi() {
                 </Link>
                 <button
                     @click="simpanEvaluasi"
-                    class="bg-[#1B7F5A] hover:bg-[#166347] text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition flex items-center gap-1.5"
+                    :disabled="isLocked"
+                    class="bg-[#1B7F5A] hover:bg-[#166347] disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition flex items-center gap-1.5"
                 >
                     💾 Simpan Evaluasi
                 </button>
@@ -209,7 +226,7 @@ function simpanEvaluasi() {
             <!-- BARIS 1, kolom 1: PROFIL SISWA -->
             <div class="lg:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 text-center flex flex-col">
                 <div class="w-20 h-20 rounded-full bg-[#1B7F5A] text-white flex items-center justify-center font-bold text-2xl mx-auto mb-3">
-                    {{ siswa.nama[0] }}
+                    {{ siswa.nama?.[0] ?? '?' }}
                 </div>
                 <h3 class="font-bold text-gray-800">{{ siswa.nama }}</h3>
                 <p class="text-xs text-gray-400 mt-0.5">Kelas {{ siswa.kelas }}</p>
@@ -244,9 +261,11 @@ function simpanEvaluasi() {
                     📊 Grafik Perkembangan — 12 Hari Terakhir
                 </h3>
                 <div class="bg-green-50/60 rounded-xl p-4">
-                    <div class="flex items-end justify-between gap-2 h-40">
-                        <div
-                            v-for="(val, i) in grafik12Hari.values"
+                    <div v-if="grafik12Hari.values.length === 0" class="h-40 flex items-center justify-center text-xs text-gray-400">
+                        Belum ada data grafik
+                    </div>
+                    <div v-else class="flex items-end justify-between gap-2 h-40">
+                        <div v-for="(val, i) in grafik12Hari.values"
                             :key="i"
                             class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end"
                         >
@@ -345,6 +364,9 @@ function simpanEvaluasi() {
 
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex-1 flex flex-col">
                     <h4 class="font-bold text-sm text-gray-700 mb-3">🏅 Penilaian & Catatan Guru</h4>
+                    <p v-if="isLocked" class="text-xs text-orange-600 bg-orange-50 rounded-lg px-3 py-2 mb-3">
+                        ⚠ {{ lockedMessage }}
+                    </p>
                     <p class="text-xs text-gray-400 mb-2">
                         Nilai / Predikat <span class="text-red-500">*</span>
                     </p>
@@ -385,7 +407,8 @@ function simpanEvaluasi() {
                         </Link>
                         <button
                             @click="simpanEvaluasi"
-                            class="flex-1 bg-[#1B7F5A] hover:bg-[#166347] text-white py-2 rounded-xl text-sm font-semibold transition"
+                            :disabled="isLocked"
+                            class="flex-1 bg-[#1B7F5A] hover:bg-[#166347] disabled:opacity-40 disabled:cursor-not-allowed text-white py-2 rounded-xl text-sm font-semibold transition"
                         >
                             Simpan
                         </button>

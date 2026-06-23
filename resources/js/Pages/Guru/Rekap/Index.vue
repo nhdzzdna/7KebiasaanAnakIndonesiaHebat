@@ -49,10 +49,64 @@ const search       = ref('')
 const halamanAktif = ref(1)
 const perHalaman   = 5
 
+// ── Filter kebiasaan (dropdown "Semua Kebiasaan") ────────────────────────────
+const filterKebiasaan = ref('semua')
+const daftarKebiasaanKolom = [
+    { value: 'bangun',   label: 'Bangun Pagi'   },
+    { value: 'olahraga', label: 'Olahraga'      },
+    { value: 'makan',    label: 'Makan Sehat'   },
+    { value: 'belajar',  label: 'Belajar Mandiri' },
+    { value: 'ibadah',   label: 'Ibadah'        },
+    { value: 'tidur',    label: 'Tidur Cukup'   },
+    { value: 'sosial',   label: 'Sosial'        },
+]
+
+// kolom yang harus ditampilkan di tabel, sesuai filter aktif
+const kolomTampil = computed(() => {
+    if (filterKebiasaan.value === 'semua') {
+        return daftarKebiasaanKolom
+    }
+    return daftarKebiasaanKolom.filter(k => k.value === filterKebiasaan.value)
+})
+
+// ── Filter nilai & rentang kepatuhan (tombol "🔽 Filter" di search bar) ──────
+const showFilterPanel = ref(false)
+const filterNilai = ref('')
+const filterKepatuhan = ref('')
+
+const daftarPilihanNilai = [
+    { value: 'A', label: 'A — Baik Sekali' },
+    { value: 'B', label: 'B — Baik' },
+    { value: 'C', label: 'C — Cukup' },
+    { value: 'D', label: 'D — Perlu Bimbingan' },
+]
+const daftarPilihanKepatuhan = [
+    { value: 'tinggi', label: '≥ 90% (Berprestasi)' },
+    { value: 'sedang', label: '60% – 89%' },
+    { value: 'rendah', label: '< 60% (Perlu Bimbingan)' },
+]
+
+function cocokKepatuhan(persen, rentang) {
+    if (rentang === 'tinggi') return persen >= 90
+    if (rentang === 'sedang') return persen >= 60 && persen < 90
+    if (rentang === 'rendah') return persen < 60
+    return true
+}
+
+function resetFilter() {
+    filterNilai.value = ''
+    filterKepatuhan.value = ''
+    showFilterPanel.value = false
+    halamanAktif.value = 1
+}
+
 const filtered = computed(() =>
-    (props.rekapSiswa ?? []).filter(s =>
-        s.nama.toLowerCase().includes(search.value.toLowerCase())
-    )
+    (props.rekapSiswa ?? []).filter(s => {
+        const cocokNama = s.nama.toLowerCase().includes(search.value.toLowerCase())
+        const cocokNilai = !filterNilai.value || s.nilai_akhir === filterNilai.value
+        const cocokKep = !filterKepatuhan.value || cocokKepatuhan(s.rata_rata_kepatuhan, filterKepatuhan.value)
+        return cocokNama && cocokNilai && cocokKep
+    })
 )
 const totalHalaman = computed(() =>
     Math.max(1, Math.ceil(filtered.value.length / perHalaman))
@@ -62,6 +116,7 @@ const paginatedData = computed(() => {
     return filtered.value.slice(start, start + perHalaman)
 })
 function onSearch() { halamanAktif.value = 1 }
+function onFilterChange() { halamanAktif.value = 1 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function warnaPersentase(val) {
@@ -107,7 +162,7 @@ const urlExcel = computed(() =>
             <!-- ── HEADER + FILTER + EKSPOR ───────────────────────────────── -->
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-800">Rekap & Laporan Kelas 7A</h1>
+                    <h1 class="text-2xl font-bold text-gray-800">Rekap & Laporan Kelas {{ filters?.kelas ?? '' }}</h1>
                     <p class="text-sm text-gray-400 mt-0.5">Rekap otomatis kebiasaan seluruh siswa per periode</p>
                 </div>
 
@@ -134,16 +189,13 @@ const urlExcel = computed(() =>
                     <!-- Dropdown semua kebiasaan -->
                     <div class="relative">
                         <select
+                            v-model="filterKebiasaan"
                             class="appearance-none bg-white border border-gray-200 rounded-xl pl-4 pr-9 py-2 text-sm text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#1B7F5A] shadow-sm"
                         >
-                            <option>Semua Kebiasaan</option>
-                            <option>Bangun Pagi</option>
-                            <option>Olahraga</option>
-                            <option>Makan Sehat</option>
-                            <option>Belajar Mandiri</option>
-                            <option>Ibadah</option>
-                            <option>Tidur Cukup</option>
-                            <option>Sosial</option>
+                            <option value="semua">Semua Kebiasaan</option>
+                            <option v-for="k in daftarKebiasaanKolom" :key="k.value" :value="k.value">
+                                {{ k.label }}
+                            </option>
                         </select>
                         <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
                             <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -253,7 +305,7 @@ const urlExcel = computed(() =>
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
 
                 <!-- Search -->
-                <div class="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+                <div class="flex items-center gap-3 px-5 py-4 border-b border-gray-100 relative">
                     <div class="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
                         <span class="text-gray-400 text-sm">🔍</span>
                         <input
@@ -264,9 +316,44 @@ const urlExcel = computed(() =>
                             class="bg-transparent text-sm w-full focus:outline-none text-gray-700"
                         />
                     </div>
-                    <button class="flex items-center gap-1.5 border border-gray-200 px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition">
+                    <button
+                        @click="showFilterPanel = !showFilterPanel"
+                        class="flex items-center gap-1.5 border rounded-xl px-4 py-2 text-sm transition"
+                        :class="showFilterPanel || filterNilai || filterKepatuhan
+                            ? 'border-[#1B7F5A] text-[#1B7F5A] bg-green-50'
+                            : 'border-gray-200 text-gray-600 hover:bg-gray-50'"
+                    >
                         🔽 Filter
                     </button>
+
+                    <div v-if="showFilterPanel" class="absolute right-5 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-20 w-60">
+                        <p class="text-xs font-semibold text-gray-400 uppercase mb-2">Nilai Akhir</p>
+                        <select
+                            v-model="filterNilai"
+                            @change="onFilterChange"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3"
+                        >
+                            <option value="">Semua Nilai</option>
+                            <option v-for="n in daftarPilihanNilai" :key="n.value" :value="n.value">{{ n.label }}</option>
+                        </select>
+
+                        <p class="text-xs font-semibold text-gray-400 uppercase mb-2">Kepatuhan</p>
+                        <select
+                            v-model="filterKepatuhan"
+                            @change="onFilterChange"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3"
+                        >
+                            <option value="">Semua Rentang</option>
+                            <option v-for="k in daftarPilihanKepatuhan" :key="k.value" :value="k.value">{{ k.label }}</option>
+                        </select>
+
+                        <button
+                            @click="resetFilter"
+                            class="w-full text-center text-xs text-gray-500 hover:text-gray-700 transition"
+                        >
+                            Reset Filter
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Tabel -->
@@ -276,13 +363,11 @@ const urlExcel = computed(() =>
                             <tr>
                                 <th class="text-left px-4 py-3 w-8">#</th>
                                 <th class="text-left px-4 py-3">Nama Siswa</th>
-                                <th class="text-center px-3 py-3">Bangun</th>
-                                <th class="text-center px-3 py-3">Olahraga</th>
-                                <th class="text-center px-3 py-3">Makan</th>
-                                <th class="text-center px-3 py-3">Belajar</th>
-                                <th class="text-center px-3 py-3">Ibadah</th>
-                                <th class="text-center px-3 py-3">Tidur</th>
-                                <th class="text-center px-3 py-3">Sosial</th>
+                                <th
+                                    v-for="k in kolomTampil"
+                                    :key="k.value"
+                                    class="text-center px-3 py-3"
+                                >{{ k.label }}</th>
                                 <th class="text-center px-3 py-3">Rata-rata</th>
                                 <th class="text-center px-3 py-3">Nilai</th>
                             </tr>
@@ -307,13 +392,12 @@ const urlExcel = computed(() =>
                                     </div>
                                 </td>
 
-                                <td class="text-center px-3 py-3 font-semibold" :class="warnaPersentase(siswa.bangun)">{{ siswa.bangun }}%</td>
-                                <td class="text-center px-3 py-3 font-semibold" :class="warnaPersentase(siswa.olahraga)">{{ siswa.olahraga }}%</td>
-                                <td class="text-center px-3 py-3 font-semibold" :class="warnaPersentase(siswa.makan)">{{ siswa.makan }}%</td>
-                                <td class="text-center px-3 py-3 font-semibold" :class="warnaPersentase(siswa.belajar)">{{ siswa.belajar }}%</td>
-                                <td class="text-center px-3 py-3 font-semibold" :class="warnaPersentase(siswa.ibadah)">{{ siswa.ibadah }}%</td>
-                                <td class="text-center px-3 py-3 font-semibold" :class="warnaPersentase(siswa.tidur)">{{ siswa.tidur }}%</td>
-                                <td class="text-center px-3 py-3 font-semibold" :class="warnaPersentase(siswa.sosial)">{{ siswa.sosial }}%</td>
+                                <td
+                                    v-for="k in kolomTampil"
+                                    :key="k.value"
+                                    class="text-center px-3 py-3 font-semibold"
+                                    :class="warnaPersentase(siswa[k.value])"
+                                >{{ siswa[k.value] }}%</td>
 
                                 <td class="text-center px-3 py-3 font-bold" :class="warnaPersentase(siswa.rata_rata_kepatuhan)">
                                     {{ siswa.rata_rata_kepatuhan }}%
@@ -325,7 +409,7 @@ const urlExcel = computed(() =>
                             </tr>
 
                             <tr v-if="paginatedData.length === 0">
-                                <td colspan="11" class="text-center py-10 text-gray-400">
+                                <td :colspan="kolomTampil.length + 4" class="text-center py-10 text-gray-400">
                                     Tidak ada siswa ditemukan.
                                 </td>
                             </tr>
