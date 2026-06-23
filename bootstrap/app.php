@@ -11,21 +11,19 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
 
-    ->withMiddleware(function (Middleware $middleware) {
-        $middleware->web(append: [
-            \App\Http\Middleware\HandleInertiaRequests::class,
-        ]);
+        ->withMiddleware(function (Middleware $middleware) {
+            $middleware->trustProxies(at: '*');
 
-        $middleware->web(append: [
-            \App\Http\Middleware\HandleInertiaRequests::class,
-        ]);
+            $middleware->web(append: [
+                \App\Http\Middleware\HandleInertiaRequests::class,
+            ]);
 
-        $middleware->alias([
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
-            'check.account.status' =>
-                \App\Http\Middleware\CheckAccountStatus::class,
-        ]);
-    })
+            $middleware->alias([
+                'role' => \App\Http\Middleware\RoleMiddleware::class,
+                'check.account.status' =>
+                    \App\Http\Middleware\CheckAccountStatus::class,
+            ]);
+        })
 
     ->withExceptions(function (Exceptions $exceptions): void {
     
