@@ -12,17 +12,17 @@ return Application::configure(basePath: dirname(__DIR__))
     )
 
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->web(append: [
+            \App\Http\Middleware\HandleInertiaRequests::class,
+        ]);
 
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
 
         $middleware->alias([
-
             'role' => \App\Http\Middleware\RoleMiddleware::class,
-
             'check.account.status' =>
-
                 \App\Http\Middleware\CheckAccountStatus::class,
         ]);
     })

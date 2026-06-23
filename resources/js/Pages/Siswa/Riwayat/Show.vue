@@ -4,6 +4,7 @@ import { ref } from 'vue'
 
 const props = defineProps({
   kegiatan: Object,
+  namaGuru: { type: String, default: null },
 })
 
 const k = props.kegiatan
@@ -12,6 +13,10 @@ const bukaAccordion = ref(null)
 
 function toggleAccordion(index) {
   bukaAccordion.value = bukaAccordion.value === index ? null : index
+}
+
+function lihatFoto(path) {
+    window.open('/storage/' + path)
 }
 
 const daftarKebiasaan = [
@@ -86,7 +91,7 @@ const nilaiLabel = { A: 'Sangat Baik', B: 'Baik', C: 'Cukup', D: 'Perlu Bimbinga
                   <span class="text-xs px-2 py-0.5 rounded-full" :class="terisi(kb.field) ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'">
                     {{ terisi(kb.field) ? '✓ Lengkap' : '— Tidak' }}
                   </span>
-                  <button v-if="k[kb.foto]" @click.stop="window.open('/storage/' + k[kb.foto])" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-500 px-2 py-1 rounded-lg transition">
+                  <button v-if="k[kb.foto]" @click.stop="lihatFoto(k[kb.foto])" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-500 px-2 py-1 rounded-lg transition">
                     📷 Lihat Foto
                   </button>
                   <span class="text-gray-400 text-xs transition-transform" :class="bukaAccordion === i ? 'rotate-180' : ''">▼</span>
@@ -122,7 +127,9 @@ const nilaiLabel = { A: 'Sangat Baik', B: 'Baik', C: 'Cukup', D: 'Perlu Bimbinga
               <div class="flex items-center gap-2 mb-3">
                 <div class="w-8 h-8 rounded-full bg-[#1B7F5A] text-white flex items-center justify-center text-sm font-bold">G</div>
                 <div>
-                  <p class="font-semibold text-sm text-[#1B7F5A]">Wali Kelas</p>
+                  <p class="font-semibold text-sm text-[#1B7F5A]">
+                      {{ namaGuru ?? 'Wali Kelas' }}
+                  </p>
                   <p class="text-xs text-gray-400">{{ formatTanggal(k.tanggal) }}</p>
                 </div>
               </div>

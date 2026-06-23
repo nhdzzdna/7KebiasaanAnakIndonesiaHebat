@@ -43,6 +43,14 @@ class HandleInertiaRequests extends Middleware
                         ? $user->studentProfile?->load('schoolClass')
 
                         : null,
+
+                'teacherProfile' =>
+
+                    $user && $user->role === 'guru'
+
+                        ? $user->teacherProfile?->load('schoolClass')
+
+                        : null,
             ],
         ];
     }

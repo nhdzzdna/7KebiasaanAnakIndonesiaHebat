@@ -48,7 +48,8 @@ const years = [2023, 2024, 2025, 2026]
 const today = new Date()
 const selectedMonth = ref(props.filters.bulan ?? today.getMonth() + 1)
 const selectedYear = ref(props.filters.tahun ?? today.getFullYear())
-const selectedDate = ref(props.filters.tanggal ?? today.toISOString().slice(0, 10)) // "YYYY-MM-DD"
+const selectedDate = ref(props.filters.tanggal ?? null) // dipakai khusus mode per_siswa, default TIDAK terfilter tanggal
+const selectedDateKebiasaan = ref(props.filters.tanggal ?? today.toISOString().slice(0, 10)) // khusus mode per_kebiasaan, wajib ada krn ditampilkan per-hari
 const searchQuery = ref(props.filters.search ?? '')
 const selectedNilaiFilter = ref(props.filters.nilai_guru ?? '')
 const showFilterPanel = ref(false)
@@ -81,7 +82,7 @@ function gotoMode(newMode) {
         if (selectedNilaiFilter.value) params.nilai_guru = selectedNilaiFilter.value
         if (selectedDate.value) params.tanggal = selectedDate.value
     } else if (newMode === 'per_kebiasaan') {
-        if (selectedDate.value) params.tanggal = selectedDate.value
+        if (selectedDateKebiasaan.value) params.tanggal = selectedDateKebiasaan.value
     } else if (newMode === 'kalender') {
         params.bulan = selectedMonth.value
         params.tahun = selectedYear.value
@@ -144,8 +145,15 @@ function calendarCellStyle(rataRata) {
     return 'bg-red-200 text-red-800'
 }
 
-// Helper: hitung jumlah kebiasaan yang terisi dari 1 object kegiatan.
+// Helper: jumlah kebiasaan yang terisi. BE sudah kirim field ini langsung
+// (habits_filled_count, dari accessor model Kegiatan), pakai itu kalau ada
+// supaya konsisten dengan compliance_percentage; fallback hitung manual
+// kalau field belum dikirim (misal kalau suatu saat ada object kegiatan
+// parsial yang gak lewat resource lengkap).
 function habitsFilledCount(kegiatan) {
+    if (kegiatan.habits_filled_count !== undefined && kegiatan.habits_filled_count !== null) {
+        return kegiatan.habits_filled_count
+    }
     return habits.filter((h) => {
         const val = kegiatan[h.key]
         return val !== null && val !== undefined && val !== ''
@@ -164,13 +172,12 @@ function hitungStatusKegiatan(kegiatan) {
     return 'Sebagian'
 }
 
-// Persentase kepatuhan: pakai field dari backend kalau ada (kepatuhan /
-// persentase_kepatuhan), kalau tidak ada baru dihitung manual dari jumlah
-// kebiasaan terisi. SESUAIKAN nama field ini begitu lihat response asli.
+// Persentase kepatuhan: field asli dari backend adalah compliance_percentage
+// (sudah dihitung & disimpan di DB tiap Kegiatan), fallback ke hitung manual
+// dari jumlah kebiasaan terisi hanya kalau field itu memang tidak ada.
 function kepatuhanValue(kegiatan) {
-    if (kegiatan.kepatuhan !== undefined && kegiatan.kepatuhan !== null) return Math.round(kegiatan.kepatuhan)
-    if (kegiatan.persentase_kepatuhan !== undefined && kegiatan.persentase_kepatuhan !== null) {
-        return Math.round(kegiatan.persentase_kepatuhan)
+    if (kegiatan.compliance_percentage !== undefined && kegiatan.compliance_percentage !== null) {
+        return Math.round(kegiatan.compliance_percentage)
     }
     return Math.round((habitsFilledCount(kegiatan) / habits.length) * 100)
 }
@@ -310,12 +317,13 @@ const currentMonthLabel = computed(() => {
                             </div>
                         </div>
 
-                        <!-- kegiatans bisa null kalau backend belum kirim (misal request awal) -->
-                        <div v-if="!kegiatans || kegiatans.data.length === 0" class="text-center py-12 text-sm text-gray-400">
-                            Belum ada data kegiatan pada tanggal/filter yang dipilih
-                        </div>
-                        <div v-else class="overflow-x-auto">
-                            <table class="w-full text-sm">
+                        <div class="min-h-[420px]">
+                            <!-- kegiatans bisa null kalau backend belum kirim (misal request awal) -->
+                            <div v-if="!kegiatans || kegiatans.data.length === 0" class="h-full flex items-center justify-center text-center text-sm text-gray-400">
+                                Belum ada data kegiatan pada tanggal/filter yang dipilih
+                            </div>
+                            <div v-else class="overflow-x-auto">
+                                <table class="w-full text-sm">
                                 <thead>
                                     <tr class="text-gray-400 text-xs uppercase tracking-wide">
                                         <th class="text-left px-5 py-2.5 font-medium w-10">#</th>
@@ -430,11 +438,11 @@ const currentMonthLabel = computed(() => {
                             </div>
                         </div>
                     </div>
-
+                    </div>  
                     <!-- ============ MODE: PER KEBIASAAN ============ -->
                     <div v-else-if="mode === 'per_kebiasaan'" class="p-5 space-y-3">
                         <input
-                            v-model="selectedDate"
+                            v-model="selectedDateKebiasaan"
                             type="date"
                             @change="gotoMode('per_kebiasaan')"
                             class="border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-2"
@@ -460,7 +468,7 @@ const currentMonthLabel = computed(() => {
                             <div class="flex flex-wrap gap-1.5">
                                 <span
                                     v-for="s in item.siswa"
-                                    :key="s.id"
+                                    :key="s.id_kegiatan"
                                     class="text-xs px-2 py-1 rounded-full"
                                     :class="s.terisi ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'"
                                     :title="s.nilai ?? ''"

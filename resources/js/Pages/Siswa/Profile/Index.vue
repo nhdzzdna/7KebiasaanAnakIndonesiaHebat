@@ -28,6 +28,7 @@ function simpan() {
 
 const correctionForm = useForm({ keterangan: '' })
 const showCorrectionBox = ref(false)
+const laporanTerkirim = ref(false)
 
 function kirimLaporan() {
   correctionForm.post('/siswa/profile/report-correction', {
@@ -35,6 +36,8 @@ function kirimLaporan() {
     onSuccess: () => {
       correctionForm.reset()
       showCorrectionBox.value = false
+      laporanTerkirim.value = true
+      setTimeout(() => { laporanTerkirim.value = false }, 4000)
     },
   })
 }
@@ -141,7 +144,10 @@ const fieldStatus = computed(() => [
             </div>
           </div>
 
-          <div v-if="!showCorrectionBox">
+          <div v-if="laporanTerkirim" class="mt-5 bg-green-50 border border-green-200 text-green-700 text-xs font-medium rounded-xl px-4 py-3 flex items-center gap-2">
+            ✅ Laporan berhasil dikirim ke admin
+          </div>
+          <div v-else-if="!showCorrectionBox">
             <button
               @click="showCorrectionBox = true"
               class="mt-5 w-full border border-gray-200 text-gray-500 text-sm py-2.5 rounded-xl hover:bg-gray-50 transition flex items-center justify-center gap-2">

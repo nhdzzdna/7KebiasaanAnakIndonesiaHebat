@@ -2,59 +2,46 @@
 import GuruLayout from '@/Layouts/GuruLayout.vue'
 import BarChartCard from '@/Components/BarChartCard.vue'
 
-// ====================================================================
-// DATA DUMMY — struktur ini SENGAJA dibuat menyerupai bentuk data
-// yang nantinya akan dikirim controller Laravel via Inertia::render().
-// Begitu backend siap, cukup ganti bagian ini dengan:
-//   const props = defineProps({ stats: Object, habitProgress: Array, ... })
-// dan hapus seluruh konstanta di bawah ini — logika template TIDAK perlu diubah.
-// ====================================================================
-
-// 4 KARTU STATISTIK — sesuai SKPL hal. 35:
-// "total siswa kelas, rata-rata kepatuhan kelas, jumlah siswa yang belum
-// input hari ini, dan jumlah siswa berprestasi (kebiasaan 100%)"
-const stats = {
-    totalSiswa: 32,
-    rataRataKepatuhan: 84,
-    belumInputHariIni: 4,
-    siswaBerprestasi: 5,
-}
-
-// BANNER PENGINGAT — sesuai SKPL: "banner pengingat apabila ada rekap
-// mingguan yang belum diselesaikan"
-const pengingatRekap = {
-    show: true,
-    pesan: 'Harap lengkapi penilaian 8 siswa sebelum Jumat, 20 Januari 2025',
-}
+const props = defineProps({
+    stats: { type: Object, required: true },
+    topPerformers: { type: Array, default: () => [] },
+    needAttention: { type: Array, default: () => [] },
+    notSubmitted: { type: Array, default: () => [] },
+    latestEvaluations: { type: Array, default: () => [] },
+    topActive: { type: Array, default: () => [] },
+    classWeeklyProgress: { type: Array, default: () => [] },
+    classMonthlyChart: { type: Array, default: () => [] },
+})
 
 // PROGRES KEBIASAAN KELAS - MINGGU INI
-const habitProgress = [
-    { name: 'Bangun Pagi', value: 92 },
-    { name: 'Ibadah & Doa', value: 78 },
-    { name: 'Makan Sehat & Bergizi', value: 85 },
-    { name: 'Olahraga', value: 70 },
-    { name: 'Belajar Mandiri', value: 88 },
-    { name: 'Aktivitas Sosial', value: 65 },
-    { name: 'Tidur Cepat', value: 80 },
-]
+// backend kirim field 'persentase' dan 'label'
+const habitProgress = (props.classWeeklyProgress ?? []).map(h => ({
+    name: h.label ?? '-',
+    value: h.persentase ?? 0,
+}))
 
-// SISWA TERAKTIF — berdasarkan persentase kepatuhan, ditampilkan dengan ranking
-const topStudents = [
-    { rank: 1, name: 'Kurnia Ardiningrum', percent: 98 },
-    { rank: 2, name: 'Azzah Fauziya', percent: 94 },
-    { rank: 3, name: 'Nayla Cahaya', percent: 91 },
-    { rank: 4, name: 'Sabrina Alya', percent: 87 },
-    { rank: 5, name: 'Nathania', percent: 83 },
-]
+// SISWA TERAKTIF — berdasarkan jumlah hari submit (topActive)
+const maxSubmit = props.topActive.length
+    ? Math.max(...props.topActive.map(i => i.total_submit ?? 0), 1)
+    : 1
+
+const topStudents = props.topActive.map((item, i) => ({
+    rank: i + 1,
+    name: item.user?.name ?? '-',
+    totalSubmit: item.total_submit ?? 0,
+    percent: Math.round(((item.total_submit ?? 0) / maxSubmit) * 100),
+}))
 
 // GRAFIK "PROFIL KEGIATAN KELAS - 30 HARI TERAKHIR"
-// labels: tanggal, values: jumlah kegiatan tercatat pada tanggal itu
+const chartValues = (props.classMonthlyChart ?? []).map(d => d.rata_rata_kepatuhan ?? 0)
 const chart30Hari = {
-    labels: ['23', '24', '25', '26', '27', '28', '29', '30', '31', '1', '2', '3'],
-    values: [24, 26, 22, 28, 30, 25, 27, 31, 29, 26, 28, 24],
-    // index bar yang jadi puncak aktivitas, diberi warna oranye (sesuai mockup SKPL)
-    highlightIndexes: [4, 8],
+    labels: (props.classMonthlyChart ?? []).map(d => d.tanggal?.slice(8, 10) ?? ''),
+    values: chartValues,
+    highlightIndexes: chartValues
+        .map((val, i) => val < 70 ? i : null)
+        .filter(i => i !== null),
 }
+
 </script>
 
 <template>
@@ -70,7 +57,7 @@ const chart30Hari = {
                     Dashboard Wali Kelas
                 </h1>
                 <p class="text-gray-500 mt-1 text-sm">
-                    Ringkasan aktivitas dan perkembangan siswa kelas 7A
+                    Ringkasan aktivitas dan perkembangan siswa kelas
                 </p>
             </div>
 
@@ -82,24 +69,26 @@ const chart30Hari = {
             </a>
         </div>
 
-        <!-- BANNER PENGINGAT REKAP MINGGUAN -->
+        <!-- BANNER PENGINGAT EVALUASI -->
         <div
-            v-if="pengingatRekap.show"
+            v-if="stats.pending_evaluations > 0"
             class="bg-[#0F3D2E] text-white rounded-2xl px-5 py-4 flex items-center justify-between gap-4 flex-wrap"
         >
             <div class="flex items-center gap-3">
                 <span class="text-xl">🔔</span>
                 <div>
-                    <p class="font-semibold text-sm">Pengingat: Rekap Mingguan Belum Diselesaikan</p>
-                    <p class="text-green-200 text-xs mt-0.5">{{ pengingatRekap.pesan }}</p>
+                    <p class="font-semibold text-sm">Pengingat: Evaluasi Belum Diselesaikan</p>
+                    <p class="text-green-200 text-xs mt-0.5">
+                        Ada {{ stats.pending_evaluations }} kegiatan siswa yang menunggu evaluasi kamu
+                    </p>
                 </div>
             </div>
 
-            <a
-                href="/guru/rekap"
+            
+                <a href="/guru/monitoring"
                 class="text-sm font-medium bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition shrink-0"
             >
-                Lihat Rekap →
+                Lihat Monitoring →
             </a>
         </div>
 
@@ -108,26 +97,26 @@ const chart30Hari = {
 
             <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                 <p class="text-gray-500 text-sm">Total Siswa Kelas</p>
-                <h2 class="text-3xl font-bold text-gray-800 mt-2">{{ stats.totalSiswa }}</h2>
-                <p class="text-xs text-gray-400 mt-1">28 aktif hari ini</p>
+                <h2 class="text-3xl font-bold text-gray-800 mt-2">{{ stats.total_students }}</h2>
+                <p class="text-xs text-gray-400 mt-1">{{ stats.today_reports }} aktif hari ini</p>
             </div>
 
             <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                 <p class="text-gray-500 text-sm">Rata-rata Kepatuhan</p>
-                <h2 class="text-3xl font-bold text-[#1B7F5A] mt-2">{{ stats.rataRataKepatuhan }}%</h2>
-                <p class="text-xs text-gray-400 mt-1">+4% vs minggu lalu</p>
+                <h2 class="text-3xl font-bold text-[#1B7F5A] mt-2">{{ stats.average_compliance }}%</h2>
+                <p class="text-xs text-gray-400 mt-1">Tingkat pengumpulan {{ stats.submission_rate }}%</p>
             </div>
 
             <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                 <p class="text-gray-500 text-sm">Belum Input Hari Ini</p>
-                <h2 class="text-3xl font-bold text-orange-500 mt-2">{{ stats.belumInputHariIni }}</h2>
+                <h2 class="text-3xl font-bold text-orange-500 mt-2">{{ notSubmitted.length }}</h2>
                 <p class="text-xs text-gray-400 mt-1">Perlu follow-up</p>
             </div>
 
             <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                <p class="text-gray-500 text-sm">Siswa Berprestasi</p>
-                <h2 class="text-3xl font-bold text-yellow-500 mt-2">{{ stats.siswaBerprestasi }}</h2>
-                <p class="text-xs text-gray-400 mt-1">Kebiasaan 100%</p>
+                <p class="text-gray-500 text-sm">Menunggu Evaluasi</p>
+                <h2 class="text-3xl font-bold text-yellow-500 mt-2">{{ stats.pending_evaluations }}</h2>
+                <p class="text-xs text-gray-400 mt-1">Kegiatan belum dinilai</p>
             </div>
 
         </div>
@@ -175,7 +164,7 @@ const chart30Hari = {
                         <span class="w-5 text-sm font-semibold text-gray-400">{{ student.rank }}</span>
 
                         <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center font-semibold text-green-700 text-xs shrink-0">
-                            {{ student.name[0] }}
+                            {{ student.name?.[0] ?? '?' }}
                         </div>
 
                         <div class="flex-1 min-w-0">
@@ -188,7 +177,7 @@ const chart30Hari = {
                             </div>
                         </div>
 
-                        <span class="text-sm font-bold text-[#1B7F5A] shrink-0">{{ student.percent }}%</span>
+                        <span class="text-sm font-bold text-[#1B7F5A] shrink-0">{{ student.totalSubmit }} hari</span>
                     </div>
                 </div>
 
@@ -222,7 +211,7 @@ const chart30Hari = {
                 Profil Kegiatan Kelas — 30 Hari Terakhir
             </h3>
             <p class="text-gray-400 text-xs mb-5">
-                Jumlah siswa yang mencatat kegiatan per hari
+                Rata-rata kepatuhan kebiasaan kelas per hari (%)
             </p>
 
             <BarChartCard
